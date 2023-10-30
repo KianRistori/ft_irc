@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
-const int MAX_CLIENTS = 10;
+const int MAX_CLIENTS = 9;
 
 void handleClient(int clientSocket, std::string serverPassword) {
     (void)serverPassword;

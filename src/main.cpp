@@ -1,4 +1,5 @@
-#include <stdio.h>  
+#include <stdio.h>
+#include <iostream>
 #include <string.h>
 #include <stdlib.h>  
 #include <errno.h>  
@@ -9,13 +10,14 @@
 #include <netinet/in.h>  
 #include <sys/time.h>
 #include <vector>
+#include "../include/User.hpp"
      
 #define TRUE   1  
 #define FALSE  0  
 #define PORT 8888  
      
 int main()   
-{   
+{
     int opt = TRUE;   
     int master_socket , addrlen , new_socket, activity, valread , sd;   
     int max_sd;   
@@ -24,18 +26,18 @@ int main()
     char buffer[1025];  //data buffer of 1K  
          
     //set of socket descriptors  
-    fd_set readfds;   
+    fd_set readfds;
          
     //a message  
     const char *message = "ECHO Daemon v1.0 \r\n";
     
-    std::vector<int> client_socket;
+    std::vector<User> users;
     //initialise all client_socket[] to 0 so not checked  
     // for (i = 0; i < max_clients; i++)   
     // {   
     //     client_socket[i] = 0;   
-    // }   
-         
+    // }
+
     //create a master socket  
     if( (master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)   
     {   
@@ -86,10 +88,10 @@ int main()
         max_sd = master_socket;   
              
         //add child sockets to set  
-        for (size_t i = 0 ; i < client_socket.size() ; i++)   
+        for (size_t i = 0 ; i < users.size() ; i++)   
         {   
             //socket descriptor  
-            sd = client_socket[i];   
+            sd = users[i].getSocket();   
                  
             //if valid socket descriptor then add to read list  
             if(sd > 0)   
@@ -131,25 +133,29 @@ int main()
                  
             puts("Welcome message sent successfully");   
                  
-            //add new socket to array of sockets  
-            for (size_t i = 0; i < client_socket.size(); i++)   
+            //add new socket to array of sockets 
+            User newUser("name", new_socket);
+            users.push_back(newUser);
+            /*for (size_t i = 0; i < users.size(); i++)   
             {   
-                //if position is empty
-                if (client_socket[i] == 0)   
+                if (users[i].getSocket() == 0)   
                 {   
-                    client_socket[i] = new_socket;
+                    users[i].setSocket(new_socket);
                     printf("Adding to list of sockets as %ld\n" , i);
                     break;
                 }   
-            }   
+            } */  
         }   
              
         //else its some IO operation on some other socket 
-        for (size_t i = 0; i < client_socket.size(); i++)   
-        {   
-            sd = client_socket[i];   
-                 
-            if (FD_ISSET( sd , &readfds))   
+        std::cout <<  0 << "<" << users.size() << std::endl;
+
+        for (size_t i = 0; i < users.size(); i++)   
+        {
+            std::cout << "FD_ISSET( sd , &readfds)" << std::endl;
+            sd = users[i].getSocket();
+            std::cout << FD_ISSET( sd , &readfds) << std::endl;
+            if (FD_ISSET( sd , &readfds))
             {   
                 //Check if it was for closing , and also read the  
                 //incoming message  
@@ -161,7 +167,7 @@ int main()
                          
                     //Close the socket and mark as 0 in list for reuse  
                     close( sd );   
-                    client_socket[i] = 0;   
+                    users[i].setSocket(0);   
                 }   
                      
                 //Echo back the message that came in  

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string.h>
+#include <string>
 #include <stdlib.h>  
 #include <errno.h>  
 #include <unistd.h>
@@ -12,12 +13,39 @@
 #include <vector>
 #include "../include/User.hpp"
      
-#define TRUE   1  
-#define FALSE  0  
-#define PORT 8888  
+#define TRUE   1
+#define FALSE  0
+
+std::string server_password;
+
+void handleIRCMessage(User &user, std::string const &message) {
+    std::cout << message;
+    if (message.find("PASS :") == 0) {
+        std::string pass = message.substr(6, message.length() - 1);
+        std::cout << "pass " << pass << std::endl;
+        if (pass != server_password) {
+            std::cout << "ok" << std::endl;
+            send(user.getSocket(), "Uncorrect Password", 19, 0);
+            close(user.getSocket());
+        }
+    }
+    if (message.find("NICK ") == 0) {
+        std::string newNick = message.substr(5);
+        user.setNickName(newNick);
+    }
+    // Handle other IRC commands (e.g., PASS) in a similar manner
+}
      
-int main()   
+int main(int argc, char *argv[])
 {
+    if (argc != 3) {
+        std::cerr << "Usage: ./ircserv <port> <password>" << std::endl;
+        return 1;
+    }
+    
+    int port = std::atoi(argv[1]);
+    server_password = argv[2];
+
     int opt = TRUE;   
     int master_socket , addrlen , new_socket, activity, valread , sd;   
     int max_sd;   
@@ -32,11 +60,6 @@ int main()
     const char *message = "ECHO Daemon v1.0 \r\n";
     
     std::vector<User> users;
-    //initialise all client_socket[] to 0 so not checked  
-    // for (i = 0; i < max_clients; i++)   
-    // {   
-    //     client_socket[i] = 0;   
-    // }
 
     //create a master socket  
     if( (master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)   
@@ -45,8 +68,7 @@ int main()
         exit(EXIT_FAILURE);   
     }   
      
-    //set master socket to allow multiple connections ,  
-    //this is just a good habit, it will work without this  
+    //set master socket to allow multiple connections, this is just a good habit, it will work without this  
     if( setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt,  
           sizeof(opt)) < 0 )   
     {   
@@ -57,15 +79,15 @@ int main()
     //type of socket created  
     address.sin_family = AF_INET;   
     address.sin_addr.s_addr = INADDR_ANY;   
-    address.sin_port = htons( PORT );   
+    address.sin_port = htons( port );   
          
-    //bind the socket to localhost port 8888  
+    //bind the socket to localhost port
     if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)   
     {   
         perror("bind failed");   
         exit(EXIT_FAILURE);   
     }   
-    printf("Listener on port %d \n", PORT);   
+    printf("Listener on port %d \n", port);   
          
     //try to specify maximum of 3 pending connections for the master socket  
     if (listen(master_socket, 3) < 0)   
@@ -94,76 +116,62 @@ int main()
             sd = users[i].getSocket();   
                  
             //if valid socket descriptor then add to read list  
-            if(sd > 0)   
+            if(sd > 0)
                 FD_SET( sd , &readfds);   
                  
             //highest file descriptor number, need it for the select function  
             if(sd > max_sd)   
                 max_sd = sd;   
-        }   
+        }
+
      
-        //wait for an activity on one of the sockets , timeout is NULL ,  
-        //so wait indefinitely  
+        //wait for an activity on one of the sockets , timeout is NULL , so wait indefinitely  
+
         activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);   
        
         if ((activity < 0) && (errno!=EINTR))   
         {   
             printf("select error");   
-        }   
+        }
              
-        //If something happened on the master socket ,  
-        //then its an incoming connection  
+        //If something happened on the master socket, then its an incoming connection  
         if (FD_ISSET(master_socket, &readfds))   
         {   
-            if ((new_socket = accept(master_socket,  
-                    (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)   
+            if ((new_socket = accept(master_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0)   
             {   
-                perror("accept");   
+                perror("accept");
                 exit(EXIT_FAILURE);   
-            }   
-             
+            }
+
             //inform user of socket number - used in send and receive commands  
-            printf("New connection , socket fd is %d , ip is : %s , port : %d\n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));    
+            printf("New connection , socket fd is %d , ip is : %s , port : %d\n", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));    
            
             //send new connection greeting message  
             if (send(new_socket, message, static_cast<ssize_t>(strlen(message)), 0) != static_cast<ssize_t>(strlen(message)))
             {   
                 perror("send");   
-            }   
-                 
-            puts("Welcome message sent successfully");   
+            }
+
+            puts("Welcome message sent successfully");
                  
             //add new socket to array of sockets 
             User newUser("name", new_socket);
             users.push_back(newUser);
-            /*for (size_t i = 0; i < users.size(); i++)   
-            {   
-                if (users[i].getSocket() == 0)   
-                {   
-                    users[i].setSocket(new_socket);
-                    printf("Adding to list of sockets as %ld\n" , i);
-                    break;
-                }   
-            } */  
-        }   
+            printf("Adding to list of sockets\n");
+        }
              
         //else its some IO operation on some other socket 
-        std::cout <<  0 << "<" << users.size() << std::endl;
-
         for (size_t i = 0; i < users.size(); i++)   
         {
-            std::cout << "FD_ISSET( sd , &readfds)" << std::endl;
             sd = users[i].getSocket();
-            std::cout << FD_ISSET( sd , &readfds) << std::endl;
             if (FD_ISSET( sd , &readfds))
             {   
-                //Check if it was for closing , and also read the  
-                //incoming message  
+                //Check if it was for closing , and also read the incoming message  
                 if ((valread = read( sd , buffer, 1024)) == 0)   
                 {   
                     //Somebody disconnected , get his details and print  
                     getpeername(sd , (struct sockaddr*)&address, (socklen_t*)&addrlen);   
-                    printf("Host disconnected , ip %s , port %d \n", inet_ntoa(address.sin_addr) , ntohs(address.sin_port));   
+                    printf("Host disconnected , ip %s , port %d , nickname %s\n", inet_ntoa(address.sin_addr) , ntohs(address.sin_port), users[i].getNickName().c_str());   
                          
                     //Close the socket and mark as 0 in list for reuse  
                     close( sd );   
@@ -173,10 +181,11 @@ int main()
                 //Echo back the message that came in  
                 else 
                 {   
-                    //set the string terminating NULL byte on the end  
-                    //of the data read  
-                    buffer[valread] = '\0';   
-                    send(sd , buffer , strlen(buffer) , 0 );   
+                    //set the string terminating NULL byte on the end of the data read
+                    buffer[valread] = '\0';
+                    handleIRCMessage(users[i], std::string(buffer));
+                    // send(sd , buffer , strlen(buffer) , 0 );   
+                    // printf("buffer: %s", buffer);  
                 }   
             }   
         }   

@@ -18,5 +18,9 @@ void User::setSocket(int socket)
     this->socket = socket;
 }
 
+void User::setNickName(std::string &name) {
+    this->nickName = name;
+}
+
 User::~User()
 {}

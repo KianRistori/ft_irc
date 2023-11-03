@@ -16,24 +16,72 @@
 #define TRUE   1
 #define FALSE  0
 
+size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
+{
+    size_t pos = txt.find( ch );
+    size_t initialPos = 0;
+    strs.clear();
+
+    // Decompose statement
+    while( pos != std::string::npos ) {
+        strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+        initialPos = pos + 1;
+
+        pos = txt.find( ch, initialPos );
+    }
+
+    // Add the last one
+    strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+
+    return strs.size();
+}
+
 std::string server_password;
 
-void handleIRCMessage(User &user, std::string const &message) {
-    std::cout << message;
+void handleIRCMessage(User &user, std::string const &message, std::vector<User> users) {
+    std::cout << message << std::endl;
     if (message.find("PASS :") == 0) {
         std::string pass = message.substr(6);
         pass.erase(pass.length() - 1);
-        if (server_password.compare(pass)) {
+        const char *wrongPassMessage = "Error wrong password \r\n";
+        if (pass != server_password) {
             std::cout << "wrong pass" << std::endl;
-            send(user.getSocket(), "Uncorrect Password", 19, 0);
+            send(user.getSocket(), wrongPassMessage, strlen(wrongPassMessage), 0);
             close(user.getSocket());
+            user.setSocket(0);
         }
     }
     if (message.find("NICK ") == 0) {
         std::string newNick = message.substr(5);
+        const char *sameNicknameMessage = "Error nickname already use \r\n";
+        for (size_t i = 0; i < users.size(); i++)
+        {
+            if (users[i].getNickName() == newNick) {
+                send(user.getSocket(), sameNicknameMessage, strlen(sameNicknameMessage), 0);
+                close(user.getSocket());
+                user.setSocket(0);
+            }   
+        }
         user.setNickName(newNick);
     }
-    // Handle other IRC commands (e.g., PASS) in a similar manner
+    if (message.find("PRIVMSG") == 0) {
+        std::cout << "PRIVMSG ok" << std::endl;
+        std::vector<std::string> splitMessage;
+        split(message, splitMessage, ' ');        
+        splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+        splitMessage[splitMessage.size() - 1] += " \r\n";
+        std::cout << "split[1]: " << splitMessage[1] << std::endl;
+        std::cout << "split[2]: " << splitMessage[splitMessage.size() - 1] << std::endl;
+        const char *sameNicknameMessage = "Error nickname already use \r\n";
+        for (size_t i = 0; i < users.size(); i++)
+        {
+            std::string nick = users[i].getNickName().erase(users[i].getNickName().length() - 1);
+            if (nick == splitMessage[1]) {
+                std::cout << "find nick: " << nick << std::endl;
+                send(users[i].getSocket(), sameNicknameMessage, strlen(sameNicknameMessage), 0);
+            }
+        }   
+    }
 }
      
 int main(int argc, char *argv[])
@@ -183,7 +231,7 @@ int main(int argc, char *argv[])
                 {   
                     //set the string terminating NULL byte on the end of the data read
                     buffer[valread] = '\0';
-                    handleIRCMessage(users[i], std::string(buffer));
+                    handleIRCMessage(users[i], std::string(buffer), users);
                     // send(sd , buffer , strlen(buffer) , 0 );   
                     // printf("buffer: %s", buffer);  
                 }   

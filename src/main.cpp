@@ -21,10 +21,10 @@ std::string server_password;
 void handleIRCMessage(User &user, std::string const &message) {
     std::cout << message;
     if (message.find("PASS :") == 0) {
-        std::string pass = message.substr(6, message.length() - 1);
-        std::cout << "pass " << pass << std::endl;
-        if (pass != server_password) {
-            std::cout << "ok" << std::endl;
+        std::string pass = message.substr(6);
+        pass.erase(pass.length() - 1);
+        if (server_password.compare(pass)) {
+            std::cout << "wrong pass" << std::endl;
             send(user.getSocket(), "Uncorrect Password", 19, 0);
             close(user.getSocket());
         }

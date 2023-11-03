@@ -67,18 +67,13 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
     if (message.find("PRIVMSG") == 0) {
         std::cout << "PRIVMSG ok" << std::endl;
         std::vector<std::string> splitMessage;
-        split(message, splitMessage, ' ');        
-        splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
-        splitMessage[splitMessage.size() - 1] += " \r\n";
-        std::cout << "split[1]: " << splitMessage[1] << std::endl;
-        std::cout << "split[2]: " << splitMessage[splitMessage.size() - 1] << std::endl;
-        const char *sameNicknameMessage = "Error nickname already use \r\n";
+        split(message, splitMessage, ' ');
         for (size_t i = 0; i < users.size(); i++)
         {
             std::string nick = users[i].getNickName().erase(users[i].getNickName().length() - 1);
+            std::string message = nick + ' ' + splitMessage[splitMessage.size() - 1] + "\r\n";
             if (nick == splitMessage[1]) {
-                std::cout << "find nick: " << nick << std::endl;
-                send(users[i].getSocket(), sameNicknameMessage, strlen(sameNicknameMessage), 0);
+                send(users[i].getSocket(), message.c_str(), strlen(message.c_str()), 0);
             }
         }   
     }
@@ -234,7 +229,7 @@ int main(int argc, char *argv[])
                     handleIRCMessage(users[i], std::string(buffer), users);
                     // send(sd , buffer , strlen(buffer) , 0 );   
                     // printf("buffer: %s", buffer);  
-                }   
+                }
             }   
         }   
     }   

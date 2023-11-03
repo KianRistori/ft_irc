@@ -20,10 +20,13 @@ std::string server_password;
 
 void handleIRCMessage(User &user, std::string const &message) {
     std::cout << message;
-    if (message.find("PASS :") == 0) {
-        std::string pass = message.substr(6);
+    if (message.find("PASS ") == 0)
+    {
+        std::string pass = message.substr(message.find(" ") + 1);
         pass.erase(pass.length() - 1);
-        if (server_password.compare(pass)) {
+        std::cout << server_password << " | " << pass << std::endl;
+        if (server_password.compare(pass))
+        {
             std::cout << "wrong pass" << std::endl;
             send(user.getSocket(), "Uncorrect Password", 19, 0);
             close(user.getSocket());
@@ -184,9 +187,9 @@ int main(int argc, char *argv[])
                     //set the string terminating NULL byte on the end of the data read
                     buffer[valread] = '\0';
                     handleIRCMessage(users[i], std::string(buffer));
-                    // send(sd , buffer , strlen(buffer) , 0 );   
+                    send(sd , buffer , strlen(buffer) , 0 );   
                     // printf("buffer: %s", buffer);  
-                }   
+                }
             }   
         }   
     }   

@@ -9,5 +9,6 @@ public:
     Channel(std::string name);
     std::string getChannelName() const;
     void addUser(User user);
+    std::vector<User> getUserList() const;
     ~Channel();
 };

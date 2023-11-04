@@ -20,3 +20,8 @@ void Channel::addUser(User user)
         userList.push_back(user);
 }
 
+std::vector<User>   Channel::getUserList() const {
+    return this->userList;
+}
+
+Channel::~Channel() { }

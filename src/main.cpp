@@ -12,9 +12,22 @@
 #include <sys/time.h>
 #include <vector>
 #include "../include/User.hpp"
+#include "../include/Channel.hpp"
      
 #define TRUE   1
 #define FALSE  0
+
+std::string appendMessage(std::string &nickname, std::vector<std::string> messageSplit) {
+    std::string res = nickname;
+    res += " ";
+    for (size_t i = 2; i < messageSplit.size(); i++)
+    {
+        res += messageSplit[i];
+        res += " ";
+    }
+    res += "\r\n";
+    return res;
+}
 
 size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
 {
@@ -38,8 +51,9 @@ size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
 
 std::string server_password;
 
-void handleIRCMessage(User &user, std::string const &message, std::vector<User> users) {
+void handleIRCMessage(User &user, std::string const &message, std::vector<User> users, std::vector<Channel> &channels) {
     std::cout << message << std::endl;
+
     if (message.find("PASS :") == 0) {
         std::string pass = message.substr(6);
         pass.erase(pass.length() - 1);
@@ -51,8 +65,10 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
             user.setSocket(0);
         }
     }
-    if (message.find("NICK ") == 0) {
+
+    else if (message.find("NICK ") == 0) {
         std::string newNick = message.substr(5);
+        newNick.erase(newNick.length() - 1);
         const char *sameNicknameMessage = "Error nickname already use \r\n";
         for (size_t i = 0; i < users.size(); i++)
         {
@@ -64,18 +80,56 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
         }
         user.setNickName(newNick);
     }
-    if (message.find("PRIVMSG") == 0) {
-        std::cout << "PRIVMSG ok" << std::endl;
+
+    else if (message.find("PRIVMSG") == 0) {
         std::vector<std::string> splitMessage;
         split(message, splitMessage, ' ');
-        for (size_t i = 0; i < users.size(); i++)
-        {
-            std::string nick = users[i].getNickName().erase(users[i].getNickName().length() - 1);
-            std::string message = nick + ' ' + splitMessage[splitMessage.size() - 1] + "\r\n";
-            if (nick == splitMessage[1]) {
-                send(users[i].getSocket(), message.c_str(), strlen(message.c_str()), 0);
+        std::string nickname = user.getNickName();
+        std::cout << "nick: " << nickname << std::endl;
+        std::string messageSend = appendMessage(nickname, splitMessage);
+        if (splitMessage[1].at(0) == '#') {
+            for (size_t i = 0; i < channels.size(); i++)
+            {
+                if (channels[i].getChannelName() == splitMessage[1]) {
+                    std::vector<User> userList = channels[i].getUserList();
+                    for (size_t j = 0; j < userList.size(); j++) {
+                        if (nickname != userList[j].getNickName())
+                            send(userList[j].getSocket(), messageSend.c_str(), strlen(messageSend.c_str()), 0);
+                    }
+                    return;
+                }
             }
-        }   
+            
+        }
+        else {
+            for (size_t i = 0; i < users.size(); i++)
+            {
+                std::string nick = users[i].getNickName();
+                if (nick == splitMessage[1]) {
+                    send(users[i].getSocket(), messageSend.c_str(), strlen(messageSend.c_str()), 0);
+                }
+            }   
+        }
+    }
+
+    else if (message.find("JOIN") == 0) {
+        std::vector<std::string> splitMessage;
+        split(message, splitMessage, ' ');
+        std::string channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+        std::cout << "channelName: " << channelName << std::endl; 
+        for (size_t i = 0; i < channels.size(); i++)
+        {
+            std::cout << "channels[i]: " << channels[i].getChannelName() << std::endl;
+            if (channels[i].getChannelName() == channelName) {
+                channels[i].addUser(user);
+                std::cout << user.getNickName() << " join " << channels[i].getChannelName() << std::endl;
+                return;
+            }
+        }
+        Channel newChannel(channelName);
+        newChannel.addUser(user);
+        channels.push_back(newChannel);
+        std::cout << "Channel: " << channelName << " create" << std::endl;
     }
 }
      
@@ -103,6 +157,7 @@ int main(int argc, char *argv[])
     const char *message = "ECHO Daemon v1.0 \r\n";
     
     std::vector<User> users;
+    std::vector<Channel> channels;
 
     //create a master socket  
     if( (master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)   
@@ -226,7 +281,7 @@ int main(int argc, char *argv[])
                 {   
                     //set the string terminating NULL byte on the end of the data read
                     buffer[valread] = '\0';
-                    handleIRCMessage(users[i], std::string(buffer), users);
+                    handleIRCMessage(users[i], std::string(buffer), users, channels);
                     // send(sd , buffer , strlen(buffer) , 0 );   
                     // printf("buffer: %s", buffer);  
                 }

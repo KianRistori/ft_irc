@@ -17,16 +17,13 @@
 #define TRUE   1
 #define FALSE  0
 
-std::string appendMessage(std::string &nickname, std::vector<std::string> messageSplit) {
-    std::string res = nickname;
-    res += " ";
-    for (size_t i = 2; i < messageSplit.size(); i++)
+Channel *findChannel(std::string &name, std::vector<Channel> &channels) {
+    for (size_t i = 0; i < channels.size(); i++)
     {
-        res += messageSplit[i];
-        res += " ";
+        if (channels[i].getChannelName() == name)
+            return &channels[i];
     }
-    res += "\r\n";
-    return res;
+    return NULL;
 }
 
 size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
@@ -57,79 +54,185 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
     if (message.find("PASS :") == 0) {
         std::string pass = message.substr(6);
         pass.erase(pass.length() - 1);
-        const char *wrongPassMessage = "Error wrong password \r\n";
+
+        // Verifica se la password è corretta
         if (pass != server_password) {
-            std::cout << "wrong pass" << std::endl;
-            send(user.getSocket(), wrongPassMessage, strlen(wrongPassMessage), 0);
+            const char *authErrorMessage = "464 * :Password incorrect\r\n";
+            send(user.getSocket(), authErrorMessage, strlen(authErrorMessage), 0);
             close(user.getSocket());
             user.setSocket(0);
         }
     }
 
-    else if (message.find("NICK ") == 0) {
+
+    if (message.find("NICK ") == 0) {
         std::string newNick = message.substr(5);
         newNick.erase(newNick.length() - 1);
-        const char *sameNicknameMessage = "Error nickname already use \r\n";
-        for (size_t i = 0; i < users.size(); i++)
-        {
+        bool nicknameTaken = false;
+
+        // Verifica se il nickname è già in uso da un altro utente
+        for (size_t i = 0; i < users.size(); i++) {
             if (users[i].getNickName() == newNick) {
-                send(user.getSocket(), sameNicknameMessage, strlen(sameNicknameMessage), 0);
-                close(user.getSocket());
-                user.setSocket(0);
-            }   
+                nicknameTaken = true;
+                break;
+            }
         }
-        user.setNickName(newNick);
+
+        if (nicknameTaken) {
+            // Invia un messaggio di errore
+            std::string nickTakenMessage = "433 * " + newNick + " :Nickname is already in use\r\n";
+            send(user.getSocket(), nickTakenMessage.c_str(), strlen(nickTakenMessage.c_str()), 0);
+        } else {
+            // Imposta il nuovo nickname per l'utente
+            user.setNickName(newNick);
+
+            // Invia una conferma al client
+            std::string nickSetMessage = "001 " + newNick + " :Welcome to the IRC server\r\n";
+            send(user.getSocket(), nickSetMessage.c_str(), strlen(nickSetMessage.c_str()), 0);
+        }
+    }
+
+    else if (message.find("USER ") == 0) {
+        std::vector<std::string> userParams;
+        split(message, userParams, ' ');
+
+        if (userParams.size() >= 5) {
+            // userParams[1] contiene il nome utente
+            // userParams[4] contiene il nome reale dell'utente
+
+            std::string username = userParams[1];
+            std::string realname = userParams[4];
+
+            // Puoi salvare il nome utente e il nome reale dell'utente nei dati dell'oggetto User
+            user.setUserName(username);
+            user.setRealName(realname);
+
+            // Invia una conferma al client
+            std::string userSetMessage = "002 " + user.getNickName() + " :Your host is irc.example.com, running version ExampleIRCServer 1.0\r\n";
+            send(user.getSocket(), userSetMessage.c_str(), strlen(userSetMessage.c_str()), 0);
+        }
     }
 
     else if (message.find("PRIVMSG") == 0) {
         std::vector<std::string> splitMessage;
         split(message, splitMessage, ' ');
         std::string nickname = user.getNickName();
-        std::cout << "nick: " << nickname << std::endl;
-        std::string messageSend = appendMessage(nickname, splitMessage);
-        if (splitMessage[1].at(0) == '#') {
+        std::string target = splitMessage[1];
+        std::string messageText = message.substr(message.find(":", 1) + 1);
+        std::string response;
+        if (target.at(0) == '#') {
             for (size_t i = 0; i < channels.size(); i++)
             {
-                if (channels[i].getChannelName() == splitMessage[1]) {
+                if (channels[i].getChannelName() == target) {
                     std::vector<User> userList = channels[i].getUserList();
                     for (size_t j = 0; j < userList.size(); j++) {
-                        if (nickname != userList[j].getNickName())
-                            send(userList[j].getSocket(), messageSend.c_str(), strlen(messageSend.c_str()), 0);
+                        if (nickname != userList[j].getNickName()) {
+                            response = ":" + nickname + " PRIVMSG " + target + " :" + messageText + "\r\n";
+                            send(userList[j].getSocket(), response.c_str(), response.length(), 0);
+                        }
                     }
                     return;
                 }
             }
             
         }
-        else {
-            for (size_t i = 0; i < users.size(); i++)
-            {
+        else
+        {
+            for (size_t i = 0; i < users.size(); i++) {
                 std::string nick = users[i].getNickName();
-                if (nick == splitMessage[1]) {
-                    send(users[i].getSocket(), messageSend.c_str(), strlen(messageSend.c_str()), 0);
+                if (nick == target) {
+                    response = ":" + nickname + " PRIVMSG " + target + " :" + messageText + "\r\n";
+                    send(users[i].getSocket(), response.c_str(), response.length(), 0);
+                    return;
                 }
-            }   
+            }
         }
     }
 
-    else if (message.find("JOIN") == 0) {
+   else if (message.find("JOIN") == 0) {
         std::vector<std::string> splitMessage;
         split(message, splitMessage, ' ');
         std::string channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
-        std::cout << "channelName: " << channelName << std::endl; 
-        for (size_t i = 0; i < channels.size(); i++)
-        {
-            std::cout << "channels[i]: " << channels[i].getChannelName() << std::endl;
+
+        // Verifica se il canale esiste già
+        Channel *existingChannel = NULL;
+        for (size_t i = 0; i < channels.size(); i++) {
             if (channels[i].getChannelName() == channelName) {
-                channels[i].addUser(user);
-                std::cout << user.getNickName() << " join " << channels[i].getChannelName() << std::endl;
-                return;
+                existingChannel = &channels[i];
+                break;
             }
         }
-        Channel newChannel(channelName);
-        newChannel.addUser(user);
-        channels.push_back(newChannel);
-        std::cout << "Channel: " << channelName << " create" << std::endl;
+
+        if (existingChannel) {
+            // Il canale esiste già, quindi aggiungi l'utente al canale
+            existingChannel->addUser(user);
+            std::cout << user.getNickName() << " join " << existingChannel->getChannelName() << std::endl;
+
+            // Invia il messaggio "JOIN" al client Konversation
+            std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
+            send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
+        } else {
+            // Il canale non esiste, quindi crealo e aggiungi l'utente
+            Channel newChannel(channelName);
+            newChannel.addUser(user);
+            newChannel.addOperators(user);
+            channels.push_back(newChannel);
+            std::cout << "Channel: " << channelName << " creato" << std::endl;
+
+            // Invia il messaggio "JOIN" al client Konversation
+            std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
+            send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
+        }
+    }
+
+    else if (message.find("INVITE") == 0) {
+        // Estrai il nome utente invitato dalla richiesta di invito
+        std::vector<std::string> splitMessage;
+        split(message, splitMessage, ' ');
+        std::string invitedNick = splitMessage[1];
+
+        // Cerca il canale a cui si applica l'invito
+        std::string channelName = splitMessage[splitMessage.size() - 1];
+        channelName.erase(channelName.length() - 1);
+        Channel *channel = findChannel(channelName, channels);
+
+        std::cout << "channel find: " << channel->getChannelName() << std::endl;
+
+        if (channel) {
+            // Prova ad invitare l'utente al canale
+            if (channel->inviteUser(user, invitedNick, channelName, users)) {
+                // Invito riuscito, invia una risposta al client che ha inviato l'invito
+                std::string inviteResponse = ":IRCServer 341 " + user.getNickName() + " " + invitedNick + " " + channelName + " :Invitation sent\r\n";
+                send(user.getSocket(), inviteResponse.c_str(), inviteResponse.length(), 0);
+            } else {
+                // Invito fallito, invia un messaggio di errore
+                std::string inviteErrorMessage = ":IRCServer 443 " + user.getNickName() + " " + channelName + " " + invitedNick + " :Cannot invite user\r\n";
+                send(user.getSocket(), inviteErrorMessage.c_str(), inviteErrorMessage.length(), 0);
+            }
+        }
+    }
+
+    else if (message.find("KICK") == 0) {
+        // Estrai il nome utente bersaglio e il nome dell'utente che esegue il comando "KICK"
+        std::vector<std::string> splitMessage;
+        split(message, splitMessage, ' ');
+        std::string channelName = splitMessage[1];
+        std::string targetNick = splitMessage[2];
+        std::string reason = message.substr(message.find(":", 1) + 1);
+        Channel *channel = findChannel(channelName,  channels);
+
+        if (channel) {
+            // Prova a eseguire il comando "KICK"
+            if (channel->kickUser(user, targetNick, users)) {
+                // Espulsione riuscita, puoi inviare una risposta al client che ha eseguito il "KICK" se lo desideri
+                std::string kickMessage = ":" + user.getNickName() + " KICK " + channelName + " " + targetNick + " :" + reason + "\r\n";
+                send(user.getSocket(), kickMessage.c_str(), kickMessage.length(), 0);
+            } else {
+                // Espulsione fallita, invia un messaggio di errore
+                std::string kickErrorMessage = ":IRCServer 441 " + user.getNickName() + " " + channelName + " " + targetNick + " :They aren't in this channel\r\n";
+                send(user.getSocket(), kickErrorMessage.c_str(), kickErrorMessage.length(), 0);
+            }
+        }
     }
 }
      

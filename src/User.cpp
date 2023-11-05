@@ -22,5 +22,13 @@ void User::setNickName(std::string &name) {
     this->nickName = name;
 }
 
+void User::setRealName(std::string &name) {
+    this->realName = name;
+}
+
+void User::setUserName(std::string &name) {
+    this->userName = name;
+}
+
 User::~User()
 {}

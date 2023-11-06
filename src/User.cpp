@@ -30,5 +30,12 @@ void User::setUserName(std::string &name) {
     this->userName = name;
 }
 
-User::~User()
-{}
+std::string User::getToken() const {
+    return this->token;
+}
+
+void    User::setToken(std::string &token) {
+    this->token = token;
+}
+
+User::~User() { }

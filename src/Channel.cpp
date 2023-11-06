@@ -11,6 +11,14 @@ std::string Channel::getChannelName() const
     return channelName;
 }
 
+std::string Channel::getTopic() const {
+    return this->topic;
+}
+
+void    Channel::setTopic(std::string &topic) {
+    this->topic = topic;
+}
+
 void Channel::addUser(User user)
 {
     bool find = false;
@@ -97,7 +105,7 @@ bool    Channel::kickUser(User user, std::string const &targetNick, std::vector<
         return false;
 
     if (targetUser) {
-        std::cout << "target user find: " << targetUser->getNickName() << std::endl;
+        std::cout << "target user find: " << targetUser->getNickName() << " socket: " << targetUser->getSocket() << std::endl;
         // Invia un messaggio di "KICK" all'utente espulso
         std::string kickMessage = ":" + user.getNickName() + " KICK " + channelName + " " + targetNick + " :You were kicked from the channel\r\n";
         send(targetUser->getSocket(), kickMessage.c_str(), kickMessage.length(), 0);
@@ -107,14 +115,21 @@ bool    Channel::kickUser(User user, std::string const &targetNick, std::vector<
         {
             if (targetNick == userList[i].getNickName()) {
                 userList.erase(userList.begin() + i);
+                std::cout << "remove: " << userList[i].getNickName() << std::endl;
                 break;
             }
         }
-        
+
         return true; // Espulsione riuscita
     }
 
     return false; // Utente target non trovato nel canale
+}
+
+void Channel::broadcastMessage(const std::string &message) {
+    for (size_t i = 0; i < userList.size(); i++) {
+        send(userList[i].getSocket(), message.c_str(), message.length(), 0);
+    }
 }
 
 Channel::~Channel() { }

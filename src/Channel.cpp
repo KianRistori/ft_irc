@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <iostream>
 
-Channel::Channel(std::string name) : channelName(name)
+Channel::Channel(std::string name) : channelName(name), inviteOnly(false), userLimit(-1)
 {}
 
 std::string Channel::getChannelName() const
@@ -82,7 +82,8 @@ bool Channel::inviteUser(User user, std::string const &invitedNick, std::string 
         if (this->isUserInChannel(*invitedUser))
             return false;
 
-        std::string inviteMessage = ":" + user.getNickName() + " INVITE " + invitedNick + " :" + channelName + "\r\n";
+        this->addInvitesUser(*invitedUser);
+        std::string inviteMessage = ": INVITE " + invitedUser->getNickName() + " :You have been invited by " + user.getNickName() + " to join the channel " + channelName + "\r\n";
         send(invitedUser->getSocket(), inviteMessage.c_str(), inviteMessage.length(), 0);
 
         return true;
@@ -139,6 +140,50 @@ void Channel::removeUser(User user) {
             break;
         }
     }
+}
+
+bool Channel::getInviteOnly() const {
+    return this->inviteOnly;
+}
+
+void Channel::setInviteOnly(bool value) {
+    this->inviteOnly = value;
+}
+
+void Channel::addInvitesUser(User user) {
+    bool find = false;
+    for (size_t i = 0; i < invitedUsers.size(); i++)
+    {
+        if (invitedUsers[i].getNickName() == user.getNickName())
+            find = true;
+    }
+    if (find == false)
+        invitedUsers.push_back(user);
+}
+
+bool Channel::isInvitedUser(User user) {
+    for (size_t i = 0; i < invitedUsers.size(); i++)
+    {
+        if (user.getNickName() == invitedUsers[i].getNickName())
+            return true;
+    }
+    return false;
+}
+
+bool Channel::checkUserLimit() {
+    if (this->userLimit != -1) {
+        if ((int)this->userList.size() > this->userLimit)
+            return false;
+    }
+    return true;
+}
+
+void Channel::setUserLimit(int limit) {
+    this->userLimit = limit;
+}
+
+void Channel::removeUserLimit() {
+    this->userLimit = -1;
 }
 
 Channel::~Channel() { }

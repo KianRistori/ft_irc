@@ -36,6 +36,9 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
 
     else if (message.find("PING") == 0)
         handlePingCommand(user, message);
+
+    else if (message.find("MODE") == 0) 
+        handleModeCommand(user, message, channels);
 }
 
 int main(int argc, char *argv[])

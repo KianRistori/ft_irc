@@ -1,7 +1,7 @@
 CXX = c++
 CXXFLAGS = -Wall -Werror -Wextra -std=c++98
 
-SRCS = src/User.cpp src/Channel.cpp src/handleIrcCommand.cpp src/main.cpp
+SRCS = src/User.cpp src/Channel.cpp src/handleIrcCommand.cpp src/modeSet.cpp src/main.cpp
 
 OBJS = ${SRCS:.cpp=.o}
 

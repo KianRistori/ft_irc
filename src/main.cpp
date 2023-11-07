@@ -25,6 +25,9 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
     else if (message.find("JOIN") == 0)
         handleJoinCommand(user, message, channels);
 
+    else if (message.find("PART") == 0)
+        handlePartCommand(user, message, channels);
+
     else if (message.find("INVITE") == 0)
         handleInviteCommand(user, message, users, channels);
 

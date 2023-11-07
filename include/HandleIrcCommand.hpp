@@ -20,6 +20,7 @@ void	handleNickCommand(User &user, std::string const &message, std::vector<User>
 void	handleUserCommand(User &user, std::string const &message);
 void	handlePrivMsgCommand(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels);
 void	handleJoinCommand(User &user, std::string const &message, std::vector<Channel> &channels);
+void	handlePartCommand(User &user, std::string const &message, std::vector<Channel> &channels);
 void	handleInviteCommand(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels);
 void	handleTopicCommand(User &user, std::string const &message, std::vector<Channel> &channels);
 void	handlePingCommand(User &user, std::string const &message);

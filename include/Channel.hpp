@@ -22,5 +22,6 @@ public:
     bool inviteUser(User user, std::string const &invitedNick, std::string const &channelName,std::vector<User> &users);
     bool kickUser(User user, std::string const &targetNick, std::vector<User> &users);
     void broadcastMessage(const std::string &message);
+    void removeUser(User user);
     ~Channel();
 };

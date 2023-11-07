@@ -141,7 +141,8 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 
 		// Invia il messaggio "JOIN" al client Konversation
 		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
-		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
+		std::cout << "joinMessage: " << joinMessage << std::endl;
+        existingChannel->broadcastMessage(joinMessage);
 
 		// Invia il topic attuale del canale al nuovo utente
 		std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
@@ -157,20 +158,38 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 			}
 		}
 		userListMessage += "\r\n";
-		send(user.getSocket(), userListMessage.c_str(), userListMessage.length(), 0);
+		existingChannel->broadcastMessage(userListMessage);
 	} else {
 		// Il canale non esiste, quindi crealo e aggiungi l'utente
 		Channel newChannel(channelName);
 		newChannel.addUser(user);
 		newChannel.addOperators(user);
 		channels.push_back(newChannel);
-		std::cout << "Channel: " << channelName << " creato" << std::endl;
 
 		// Invia il messaggio "JOIN" al client Konversation
 		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
 		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
 		std::string userListMessage = ": 353 " + user.getNickName() + " = " + channelName + " :" + user.getNickName() + "\r\n";
 		send(user.getSocket(), userListMessage.c_str(), userListMessage.length(), 0);
+	}
+}
+
+void	handlePartCommand(User &user, std::string const &message, std::vector<Channel> &channels) {
+	std::vector<std::string> splitMessage;
+    split(message, splitMessage, ' ');
+	std::string channelName = splitMessage[1];
+	Channel *channel = findChannel(channelName, channels);
+
+	if (channel) {
+		channel->removeUser(user);
+		std::string partMessage = ":" + user.getNickName() + " PART " + channel->getChannelName() + "\r\n";
+		channel->broadcastMessage(partMessage);
+		std::string partConfirmation = "PART " + channelName + "\r\n";
+    	send(user.getSocket(), partConfirmation.c_str(), strlen(partConfirmation.c_str()), 0);
+	} else {
+		std::string partErrorMessage = "403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";
+        send(user.getSocket(), partErrorMessage.c_str(), strlen(partErrorMessage.c_str()), 0);
+        return;
 	}
 }
 

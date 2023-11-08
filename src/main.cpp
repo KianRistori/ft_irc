@@ -39,6 +39,9 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
 
     else if (message.find("KICK") == 0)
         handleKickCommand(user, users, message, channels);
+        
+    else if (message.find("MODE") == 0) 
+        handleModeCommand(user, message, channels);
 }
 
 int main(int argc, char *argv[])

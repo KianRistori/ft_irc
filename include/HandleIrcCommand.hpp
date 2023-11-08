@@ -25,3 +25,4 @@ void	handleInviteCommand(User &user, std::string const &message, std::vector<Use
 void	handleTopicCommand(User &user, std::string const &message, std::vector<Channel> &channels);
 void	handlePingCommand(User &user, std::string const &message);
 void    handleKickCommand(User &user, std::vector<User> &users, std::string const &message, std::vector<Channel> &channels);
+void    handleModeCommand(User &user, std::string const &message, std::vector<Channel> &channels);

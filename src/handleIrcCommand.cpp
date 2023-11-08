@@ -1,4 +1,5 @@
 #include "../include/HandleIrcCommand.hpp"
+#include "../include/ModeSet.hpp"
 
 static Channel *findChannel(std::string &name, std::vector<Channel> &channels) {
 	for (size_t i = 0; i < channels.size(); i++)
@@ -134,21 +135,28 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 	// Verifica se il canale esiste già
 	Channel *existingChannel = findChannel(channelName, channels);
 
-	if (existingChannel) {
+	if (existingChannel && existingChannel->checkUserLimit()) {
+		if (existingChannel->getInviteOnly()) {
+			if (!existingChannel->isInvitedUser(user)) {
+				std::string inviteOnlyErrorMessage = ":* 473 " + user.getNickName() + " " + channelName + " :Channel is invite-only\r\n";
+                send(user.getSocket(), inviteOnlyErrorMessage.c_str(), strlen(inviteOnlyErrorMessage.c_str()), 0);
+                return;
+            }
+		}
 		// Il canale esiste già, quindi aggiungi l'utente al canale
 		existingChannel->addUser(user);
-		std::cout << user.getNickName() << " join " << existingChannel->getChannelName() << std::endl;
+		// std::cout << user.getNickName() << " join " << existingChannel->getChannelName() << std::endl;
 
 		// Invia il messaggio "JOIN" al client Konversation
 		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
 		std::cout << "joinMessage: " << joinMessage << std::endl;
-        existingChannel->broadcastMessage(joinMessage);
+		existingChannel->broadcastMessage(joinMessage);
 
 		// Invia il topic attuale del canale al nuovo utente
 		std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
 		send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
 
-		 // Ottieni la lista degli utenti e inviala al client
+		// Ottieni la lista degli utenti e inviala al client
 		std::vector<User> userList = existingChannel->getUserList();
 		std::string userListMessage = ": 353 " + user.getNickName() + " = " + channelName + " :";
 		for (size_t i = 0; i < userList.size(); i++) {
@@ -214,6 +222,37 @@ void	handleInviteCommand(User &user, std::string const &message, std::vector<Use
 			// Invito fallito, invia un messaggio di errore
 			std::string inviteErrorMessage = ": 443 " + user.getNickName() + " " + channelName + " " + invitedNick + " :Cannot invite user\r\n";
 			send(user.getSocket(), inviteErrorMessage.c_str(), inviteErrorMessage.length(), 0);
+		}
+	}
+}
+
+void handleModeCommand(User &user, std::string const &message, std::vector<Channel> &channels) {
+    std::vector<std::string> splitMessage;
+    split(message, splitMessage, ' ');
+
+    if (splitMessage.size() < 2) {
+        // La sintassi del comando MODE è errata
+        // Invia un messaggio di errore all'utente
+        std::string modeErrorMessage = "461 " + user.getNickName() + " MODE :Not enough parameters\r\n";
+        send(user.getSocket(), modeErrorMessage.c_str(), strlen(modeErrorMessage.c_str()), 0);
+        return;
+    }
+	if (splitMessage.size() == 3) {
+		std::string channelName = splitMessage[1];
+		Channel *targetChannel = findChannel(channelName, channels);
+		if (!targetChannel) {
+		    std::string noSuchChannelErrorMessage = "403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";
+		    send(user.getSocket(), noSuchChannelErrorMessage.c_str(), strlen(noSuchChannelErrorMessage.c_str()), 0);
+		    return;
+		}
+		std::string modeChange = splitMessage[2];
+		std::cout << "modeChange: " << modeChange << std::endl;
+		modeChange.erase(modeChange.length() - 1);
+		if (targetChannel->isOperator(user)) {
+			if (modeChange == "+i" || modeChange == "-i")
+				modSetInviteOnly(targetChannel, modeChange);
+			else if (modeChange == "+l" || modeChange == "-l")
+				modSetLimit(targetChannel, modeChange, splitMessage, user);
 		}
 	}
 }

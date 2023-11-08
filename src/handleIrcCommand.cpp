@@ -256,3 +256,53 @@ void	handlePingCommand(User &user, std::string const &message) {
  	std::string pongMessage = "PONG :" + user.getToken() + "\r\n";
     send(user.getSocket(), pongMessage.c_str(), pongMessage.length(), 0);
 }
+
+void handleKickCommand(User &user, std::vector<User> &users, std::string const &message, std::vector<Channel> &channels)
+{
+	std::vector<std::string> splitMsg;
+	Channel *chn = NULL;
+	User *target = NULL;
+	std::cout << "msg " << message << std::endl;
+	split(message, splitMsg, ' ');
+	std::string channelName = splitMsg[1];
+	for (size_t i = 0; i < users.size(); i++)
+	{
+		if (users[i].getNickName() == splitMsg[2])
+		{
+			target = &(users[i]);
+			break;
+		}
+	}
+	for (size_t i = 0; i < channels.size(); i++)
+	{
+		if (channelName == channels[i].getChannelName() /*&& channels[i].isUserInChannel(user) && channels[i].isOperator(user)*/)
+		{
+			chn = &(channels[i]);
+			break;
+		}
+	}
+	if (chn == NULL)
+	{
+		std::string noSuchChannel = ": * 403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";
+		send(user.getSocket(), noSuchChannel.c_str(), noSuchChannel.size(), 0);
+		return;
+	}
+	if (!chn->isUserInChannel(user))
+	{
+		std::string userNotInChannel = ": * 441 " + target->getNickName() + " " + chn->getChannelName() + " :User not in channel\r\n";
+		send(user.getSocket(), userNotInChannel.c_str(), userNotInChannel.size(), 0);
+		return;
+	}
+	if (!chn->isOperator(user))
+	{
+		std::string operatorPrivilegesNeeded = ": * 482 " + user.getNickName() + " " + chn->getChannelName() + " :You're not channel operator\r\n";
+		send(user.getSocket(), operatorPrivilegesNeeded.c_str(), operatorPrivilegesNeeded.size(), 0);
+		return;
+	}
+	std::string request = "KICK " + chn->getChannelName() + " " + splitMsg[2] + ":reason\r\n";
+	std::cout << "send : " << request << std::endl;
+	send(target->getSocket(), request.c_str(), request.size(), 0);
+	chn->removeUser(*target);
+	chn->broadcastMessage("User " + splitMsg[2] + " has been kicked by " + user.getNickName() + "\r\n");
+	std::cout << "User " << splitMsg[2] << " kicked from channel " << chn->getChannelName() << std::endl;
+}

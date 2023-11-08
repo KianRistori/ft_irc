@@ -247,6 +247,7 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
 		}
 		std::string modeChange = splitMessage[2];
 		std::cout << "modeChange: " << modeChange << std::endl;
+		modeChange.erase(modeChange.length() - 1);
 		if (targetChannel->isOperator(user)) {
 			if (modeChange == "+i" || modeChange == "-i")
 				modSetInviteOnly(targetChannel, modeChange);

@@ -134,11 +134,9 @@ void Channel::broadcastMessage(const std::string &message) {
 }
 
 void Channel::removeUser(User user) {
-    for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); ++it) {
-        if (it->getNickName() == user.getNickName()) {
-            userList.erase(it);
-            break;
-        }
+    std::vector<User>::iterator it = std::find(userList.begin(), userList.end(), user);
+    if (it != userList.end()) {
+        userList.erase(it);
     }
 }
 

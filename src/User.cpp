@@ -38,4 +38,10 @@ void    User::setToken(std::string &token) {
     this->token = token;
 }
 
+bool    User::operator==(User user) {
+    if (user.getNickName() == this->nickName)
+        return true;
+    return false;
+}
+
 User::~User() { }

@@ -14,6 +14,7 @@ private:
 public:
     User(std::string name, int socket);
     ~User();
+    bool operator==(User user);
     std::string getNickName() const;
     void setNickName(std::string &name);
     void setUserName(std::string &name);

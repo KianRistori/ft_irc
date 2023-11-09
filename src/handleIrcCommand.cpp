@@ -145,28 +145,24 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 		}
 		// Il canale esiste già, quindi aggiungi l'utente al canale
 		existingChannel->addUser(user);
-		// std::cout << user.getNickName() << " join " << existingChannel->getChannelName() << std::endl;
 
 		// Invia il messaggio "JOIN" al client Konversation
 		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
-		std::cout << "joinMessage: " << joinMessage << std::endl;
-		existingChannel->broadcastMessage(joinMessage);
+		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
+
+		existingChannel->handleJoinMessage(user);
 
 		// Invia il topic attuale del canale al nuovo utente
-		std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
-		send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+		if (existingChannel->getTopic() == "") {
+			std::string topicMessage = ":" + user.getNickName() + " 331 " + user.getNickName() + " " + existingChannel->getChannelName() + " :No topic is set" + "\r\n";
+			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+		} else {
+			std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
+			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+		}
 
 		// Ottieni la lista degli utenti e inviala al client
-		std::vector<User> userList = existingChannel->getUserList();
-		std::string userListMessage = ": 353 " + user.getNickName() + " = " + channelName + " :";
-		for (size_t i = 0; i < userList.size(); i++) {
-			userListMessage += userList[i].getNickName();
-			if (i < userList.size() - 1) {
-				userListMessage += " ";
-			}
-		}
-		userListMessage += "\r\n";
-		existingChannel->broadcastMessage(userListMessage);
+		existingChannel->updateUserList(user);
 	} else {
 		// Il canale non esiste, quindi crealo e aggiungi l'utente
 		Channel newChannel(channelName);
@@ -182,23 +178,29 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 	}
 }
 
-void	handlePartCommand(User &user, std::string const &message, std::vector<Channel> &channels) {
-	std::vector<std::string> splitMessage;
+void handlePartCommand(User &user, std::string const &message, std::vector<Channel> &channels) {
+    std::vector<std::string> splitMessage;
     split(message, splitMessage, ' ');
-	std::string channelName = splitMessage[1];
-	Channel *channel = findChannel(channelName, channels);
+    std::string channelName = splitMessage[1];
+    Channel *channel = findChannel(channelName, channels);
 
-	if (channel) {
-		channel->removeUser(user);
-		std::string partMessage = ":" + user.getNickName() + " PART " + channel->getChannelName() + "\r\n";
-		channel->broadcastMessage(partMessage);
-		std::string partConfirmation = "PART " + channelName + "\r\n";
-    	send(user.getSocket(), partConfirmation.c_str(), strlen(partConfirmation.c_str()), 0);
-	} else {
-		std::string partErrorMessage = "403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";
+    if (channel) {
+        // Invia un messaggio di partenza a tutti gli utenti rimanenti nel canale
+        std::string partMessage = ":" + user.getNickName() + "!" + user.getNickName() + " PART :" + channel->getChannelName() + "\r\n";
+        channel->broadcastMessage(partMessage);
+
+        // Rimuovi l'utente dal canale
+        channel->removeUser(user);
+
+        // Ora aggiorna la lista degli utenti e inviala a tutti gli utenti rimanenti
+		channel->updateUserList(user);
+
+        // Ora Konversation dovrebbe ricevere il messaggio di partenza e aggiornare la lista degli utenti rimanenti.
+    } else {
+        std::string partErrorMessage = "403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";
         send(user.getSocket(), partErrorMessage.c_str(), strlen(partErrorMessage.c_str()), 0);
         return;
-	}
+    }
 }
 
 void	handleInviteCommand(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels) {

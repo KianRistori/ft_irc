@@ -33,5 +33,7 @@ public:
     bool kickUser(User user, std::string const &targetNick, std::vector<User> &users);
     void broadcastMessage(const std::string &message);
     void removeUser(User user);
+    void handleJoinMessage(User user);
+    void updateUserList(User user);
     ~Channel();
 };

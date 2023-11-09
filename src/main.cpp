@@ -42,6 +42,9 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
         
     else if (message.find("MODE") == 0) 
         handleModeCommand(user, message, channels);
+
+    //else if (message.find("PART") == 0) 
+    //    handleLeaveCommand(user, message, channels);
 }
 
 int main(int argc, char *argv[])

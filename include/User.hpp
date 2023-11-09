@@ -23,4 +23,5 @@ public:
     void setToken(std::string &token);
     int getSocket() const;
     void setSocket(int socket);
+    std::string getUserName() const;
 };

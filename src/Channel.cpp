@@ -129,14 +129,20 @@ bool    Channel::kickUser(User user, std::string const &targetNick, std::vector<
 
 void Channel::broadcastMessage(const std::string &message) {
     for (size_t i = 0; i < userList.size(); i++) {
-        send(userList[i].getSocket(), message.c_str(), message.length(), 0);
+        send(userList[i].getSocket(), message.c_str(), message.length(), MSG_DONTWAIT);
     }
 }
 
 void Channel::removeUser(User user) {
     std::vector<User>::iterator it = std::find(userList.begin(), userList.end(), user);
     if (it != userList.end()) {
+        std::cout << "kicked user : " << (*it).getNickName() << std::endl;
         userList.erase(it);
+        for (size_t i = 0; i < userList.size(); i++)
+        {
+            std::cout << i << " : " << userList[i].getNickName() << std::endl;
+        }
+        
     }
 }
 

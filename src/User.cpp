@@ -44,4 +44,9 @@ bool    User::operator==(User user) {
     return false;
 }
 
+std::string User::getUserName() const
+{
+    return userName;
+}
+
 User::~User() { }

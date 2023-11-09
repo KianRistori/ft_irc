@@ -101,7 +101,7 @@ void	handlePrivMsgCommand(User &user, std::string const &message, std::vector<Us
 	if (target.at(0) == '#') {
 		for (size_t i = 0; i < channels.size(); i++)
 		{
-			if (channels[i].getChannelName() == target) {
+			if (channels[i].getChannelName() == target && channels[i].isUserInChannel(user)) {
 				std::vector<User> userList = channels[i].getUserList();
 				for (size_t j = 0; j < userList.size(); j++) {
 					if (nickname != userList[j].getNickName()) {
@@ -112,7 +112,6 @@ void	handlePrivMsgCommand(User &user, std::string const &message, std::vector<Us
 				return;
 			}
 		}
-
 	}
 	else
 	{
@@ -340,8 +339,10 @@ void handleKickCommand(User &user, std::vector<User> &users, std::string const &
 	}
 	std::string request = "KICK " + chn->getChannelName() + " " + splitMsg[2] + ":reason\r\n";
 	std::cout << "send : " << request << std::endl;
-	send(target->getSocket(), request.c_str(), request.size(), 0);
+	//send(target->getSocket(), request.c_str(), request.size(), 0);
+	std::string str = RPL_KICK(user.getNickName(), user.getUserName(), chn->getChannelName(), target->getNickName(), "reason_blbbl");
+	send(target->getSocket(), str.c_str(), str.size(), MSG_DONTWAIT);
 	chn->removeUser(*target);
-	chn->broadcastMessage("User " + splitMsg[2] + " has been kicked by " + user.getNickName() + "\r\n");
+	chn->broadcastMessage(str);
 	std::cout << "User " << splitMsg[2] << " kicked from channel " << chn->getChannelName() << std::endl;
 }

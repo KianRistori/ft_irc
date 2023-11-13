@@ -124,7 +124,12 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 
 	Channel *existingChannel = findChannel(channelName, channels);
 
-	if (existingChannel && existingChannel->checkUserLimit()) {
+	if (existingChannel) {
+		if (!existingChannel->checkUserLimit()) {
+			std::string inviteOnlyErrorMessage = ":* 471 " + user.getNickName() + " " + channelName + ":Cannot join channel (+l)\r\n";
+			send(user.getSocket(), inviteOnlyErrorMessage.c_str(), strlen(inviteOnlyErrorMessage.c_str()), 0);
+			return;
+		}
 		if (existingChannel->getInviteOnly()) {
 			if (!existingChannel->isInvitedUser(user)) {
 				std::string inviteOnlyErrorMessage = ":* 473 " + user.getNickName() + " " + channelName + " :Channel is invite-only\r\n";

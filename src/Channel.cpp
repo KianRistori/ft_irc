@@ -141,7 +141,7 @@ bool Channel::isInvitedUser(User user) {
 
 bool Channel::checkUserLimit() {
     if (this->userLimit != -1) {
-        if ((int)this->userList.size() > this->userLimit)
+        if ((int)this->userList.size() == this->userLimit)
             return false;
     }
     return true;
@@ -201,8 +201,8 @@ bool Channel::getTopicRestriction() {
 
 void Channel::removeOperator(User user) {
     std::vector<User>::iterator it = std::find(operators.begin(), operators.end(), user);
-    if (it != userList.end()) {
-        userList.erase(it);
+    if (it != operators.end()) {
+        operators.erase(it);
     }
 }
 

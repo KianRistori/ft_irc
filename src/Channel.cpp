@@ -182,7 +182,8 @@ void Channel::setPassword(std::string password) {
 }
 
 bool Channel::checkChannelPassword(std::string password) {
-    if (password == "")
+    std::cout << "provided pass: " << password << " | pass: " << this->password << std::endl;
+    if (this->password == "")
         return true;
     else if (this->password == password)
         return true;

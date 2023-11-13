@@ -116,7 +116,11 @@ void	handlePrivMsgCommand(User &user, std::string const &message, std::vector<Us
 void	handleJoinCommand(User &user, std::string const &message, std::vector<Channel> &channels) {
 	std::vector<std::string> splitMessage;
 	split(message, splitMessage, ' ');
-	std::string channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+	std::string channelName;
+	if(splitMessage.size() == 2)
+		channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+	else
+		channelName = splitMessage[splitMessage.size() -2];
 
 	Channel *existingChannel = findChannel(channelName, channels);
 
@@ -130,34 +134,35 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 		}
 
 		//QUI HO SBAGLIATO VA CONTROLLATA LA PASSWORD
-		
-		if (splitMessage.size() == 3) {
-			std::string providedPassword = splitMessage[2];
-            if (existingChannel->checkChannelPassword(providedPassword)) {
-                existingChannel->addUser(user);
-            } else {
-                std::string passwordIncorrectMessage = ":* 475 " + user.getNickName() + " " + channelName + " :Password incorrect\r\n";
-                send(user.getSocket(), passwordIncorrectMessage.c_str(), strlen(passwordIncorrectMessage.c_str()), 0);
-                return;
-            }
-		}
-		else {
+		std::string providedPassword;
+		if (splitMessage.size() == 3)
+			providedPassword = splitMessage[2].erase(splitMessage[2].size() - 1);
+		else
+			providedPassword = "";
+		std::cout << "provided password : " << providedPassword << std::endl;
+		if (existingChannel->checkChannelPassword(providedPassword)) {
 			existingChannel->addUser(user);
-			std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
-			send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
-
-			existingChannel->handleJoinMessage(user);
-
-			if (existingChannel->getTopic() == "") {
-				std::string topicMessage = ":" + user.getNickName() + " 331 " + user.getNickName() + " " + existingChannel->getChannelName() + " :No topic is set" + "\r\n";
-				send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
-			} else {
-				std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
-				send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
-			}
-
-			existingChannel->updateUserList(user);
+		} else {
+			std::string passwordIncorrectMessage = ":* 475 " + user.getNickName() + " " + channelName + " :Password incorrect\r\n";
+			send(user.getSocket(), passwordIncorrectMessage.c_str(), strlen(passwordIncorrectMessage.c_str()), 0);
+			return;
 		}
+		//
+		existingChannel->addUser(user);
+		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
+		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
+
+		existingChannel->handleJoinMessage(user);
+
+		if (existingChannel->getTopic() == "") {
+			std::string topicMessage = ":" + user.getNickName() + " 331 " + user.getNickName() + " " + existingChannel->getChannelName() + " :No topic is set" + "\r\n";
+			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+		} else {
+			std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
+			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+		}
+
+		existingChannel->updateUserList(user);
 	} else {
 		Channel newChannel(channelName);
 		newChannel.addUser(user);

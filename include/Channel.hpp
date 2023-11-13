@@ -10,7 +10,9 @@ private:
     std::vector<User> invitedUsers;
     std::vector<User> operators;
     std::string topic;
+    std::string password;
     bool    inviteOnly;
+    bool    topicRestriction;
     int     userLimit;
 public:
     Channel(std::string name);
@@ -35,5 +37,9 @@ public:
     void removeUser(User user);
     void handleJoinMessage(User user);
     void updateUserList(User user);
+    void setPassword(std::string password);
+    bool checkChannelPassword(std::string password);
+    void setTopicRestriction(bool topicRestriction);
+    bool getTopicRestriction();
     ~Channel();
 };

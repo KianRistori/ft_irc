@@ -16,7 +16,6 @@ static size_t split(const std::string &txt, std::vector<std::string> &strs, char
 	size_t initialPos = 0;
 	strs.clear();
 
-	// Decompose statement
 	while( pos != std::string::npos ) {
 		strs.push_back( txt.substr( initialPos, pos - initialPos ) );
 		initialPos = pos + 1;
@@ -24,7 +23,6 @@ static size_t split(const std::string &txt, std::vector<std::string> &strs, char
 		pos = txt.find( ch, initialPos );
 	}
 
-	// Add the last one
 	strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
 
 	return strs.size();
@@ -34,7 +32,6 @@ void	handlePassCommand(User &user, std::string const &message, std::string &serv
 	std::string pass = message.substr(6);
 	pass.erase(pass.length() - 1);
 
-	// Verifica se la password è corretta
 	if (pass != server_password) {
 		const char *authErrorMessage = "464 * :Password incorrect\r\n";
 		send(user.getSocket(), authErrorMessage, strlen(authErrorMessage), 0);
@@ -48,7 +45,6 @@ void	handleNickCommand(User &user, std::string const &message, std::vector<User>
 	newNick.erase(newNick.length() - 1);
 	bool nicknameTaken = false;
 
-	// Verifica se il nickname è già in uso da un altro utente
 	for (size_t i = 0; i < users.size(); i++) {
 		if (users[i].getNickName() == newNick) {
 			nicknameTaken = true;
@@ -57,14 +53,10 @@ void	handleNickCommand(User &user, std::string const &message, std::vector<User>
 	}
 
 	if (nicknameTaken) {
-		// Invia un messaggio di errore
 		std::string nickTakenMessage = "433 * " + newNick + " :Nickname is already in use\r\n";
 		send(user.getSocket(), nickTakenMessage.c_str(), strlen(nickTakenMessage.c_str()), 0);
 	} else {
-		// Imposta il nuovo nickname per l'utente
 		user.setNickName(newNick);
-
-		// Invia una conferma al client
 		std::string nickSetMessage = "001 " + newNick + " :Welcome to the IRC server\r\n";
 		send(user.getSocket(), nickSetMessage.c_str(), strlen(nickSetMessage.c_str()), 0);
 	}
@@ -75,17 +67,12 @@ void	handleUserCommand(User &user, std::string const &message) {
 	split(message, userParams, ' ');
 
 	if (userParams.size() >= 5) {
-		// userParams[1] contiene il nome utente
-		// userParams[4] contiene il nome reale dell'utente
-
 		std::string username = userParams[1];
 		std::string realname = userParams[4];
 
-		// Puoi salvare il nome utente e il nome reale dell'utente nei dati dell'oggetto User
 		user.setUserName(username);
 		user.setRealName(realname);
 
-		// Invia una conferma al client
 		std::string userSetMessage = "002 " + user.getNickName() + " :Your host is irc.example.com, running version ExampleIRCServer 1.0\r\n";
 		send(user.getSocket(), userSetMessage.c_str(), strlen(userSetMessage.c_str()), 0);
 	}
@@ -131,7 +118,6 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 	split(message, splitMessage, ' ');
 	std::string channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
 
-	// Verifica se il canale esiste già
 	Channel *existingChannel = findChannel(channelName, channels);
 
 	if (existingChannel && existingChannel->checkUserLimit()) {
@@ -142,34 +128,39 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
                 return;
             }
 		}
-		// Il canale esiste già, quindi aggiungi l'utente al canale
-		existingChannel->addUser(user);
-
-		// Invia il messaggio "JOIN" al client Konversation
-		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
-		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
-
-		existingChannel->handleJoinMessage(user);
-
-		// Invia il topic attuale del canale al nuovo utente
-		if (existingChannel->getTopic() == "") {
-			std::string topicMessage = ":" + user.getNickName() + " 331 " + user.getNickName() + " " + existingChannel->getChannelName() + " :No topic is set" + "\r\n";
-			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
-		} else {
-			std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
-			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+		if (splitMessage.size() == 3) {
+			std::string providedPassword = splitMessage[2];
+            if (existingChannel->checkChannelPassword(providedPassword)) {
+                existingChannel->addUser(user);
+            } else {
+                std::string passwordIncorrectMessage = ":* 475 " + user.getNickName() + " " + channelName + " :Password incorrect\r\n";
+                send(user.getSocket(), passwordIncorrectMessage.c_str(), strlen(passwordIncorrectMessage.c_str()), 0);
+                return;
+            }
 		}
+		else {
+			existingChannel->addUser(user);
+			std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
+			send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
 
-		// Ottieni la lista degli utenti e inviala al client
-		existingChannel->updateUserList(user);
+			existingChannel->handleJoinMessage(user);
+
+			if (existingChannel->getTopic() == "") {
+				std::string topicMessage = ":" + user.getNickName() + " 331 " + user.getNickName() + " " + existingChannel->getChannelName() + " :No topic is set" + "\r\n";
+				send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+			} else {
+				std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
+				send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+			}
+
+			existingChannel->updateUserList(user);
+		}
 	} else {
-		// Il canale non esiste, quindi crealo e aggiungi l'utente
 		Channel newChannel(channelName);
 		newChannel.addUser(user);
 		newChannel.addOperators(user);
 		channels.push_back(newChannel);
 
-		// Invia il messaggio "JOIN" al client Konversation
 		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
 		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
 		std::string userListMessage = ": 353 " + user.getNickName() + " = " + channelName + " :" + user.getNickName() + "\r\n";
@@ -184,17 +175,10 @@ void handlePartCommand(User &user, std::string const &message, std::vector<Chann
     Channel *channel = findChannel(channelName, channels);
 
     if (channel) {
-        // Invia un messaggio di partenza a tutti gli utenti rimanenti nel canale
         std::string partMessage = ":" + user.getNickName() + "!" + user.getNickName() + " PART :" + channel->getChannelName() + "\r\n";
         channel->broadcastMessage(partMessage);
-
-        // Rimuovi l'utente dal canale
         channel->removeUser(user);
-
-        // Ora aggiorna la lista degli utenti e inviala a tutti gli utenti rimanenti
 		channel->updateUserList(user);
-
-        // Ora Konversation dovrebbe ricevere il messaggio di partenza e aggiornare la lista degli utenti rimanenti.
     } else {
         std::string partErrorMessage = "403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";
         send(user.getSocket(), partErrorMessage.c_str(), strlen(partErrorMessage.c_str()), 0);
@@ -203,24 +187,19 @@ void handlePartCommand(User &user, std::string const &message, std::vector<Chann
 }
 
 void	handleInviteCommand(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels) {
-	// Estrai il nome utente invitato dalla richiesta di invito
 	std::vector<std::string> splitMessage;
 	split(message, splitMessage, ' ');
 	std::string invitedNick = splitMessage[1];
 
-	// Cerca il canale a cui si applica l'invito
 	std::string channelName = splitMessage[splitMessage.size() - 1];
 	channelName.erase(channelName.length() - 1);
 	Channel *channel = findChannel(channelName, channels);
 
 	if (channel) {
-		// Prova ad invitare l'utente al canale
 		if (channel->inviteUser(user, invitedNick, channelName, users)) {
-			// Invito riuscito, invia una risposta al client che ha inviato l'invito
 			std::string inviteResponse = ": 341 " + user.getNickName() + " " + invitedNick + " " + channelName + " :Invitation sent\r\n";
 			send(user.getSocket(), inviteResponse.c_str(), inviteResponse.length(), 0);
 		} else {
-			// Invito fallito, invia un messaggio di errore
 			std::string inviteErrorMessage = ": 443 " + user.getNickName() + " " + channelName + " " + invitedNick + " :Cannot invite user\r\n";
 			send(user.getSocket(), inviteErrorMessage.c_str(), inviteErrorMessage.length(), 0);
 		}
@@ -232,8 +211,6 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
     split(message, splitMessage, ' ');
 
     if (splitMessage.size() < 2) {
-        // La sintassi del comando MODE è errata
-        // Invia un messaggio di errore all'utente
         std::string modeErrorMessage = "461 " + user.getNickName() + " MODE :Not enough parameters\r\n";
         send(user.getSocket(), modeErrorMessage.c_str(), strlen(modeErrorMessage.c_str()), 0);
         return;
@@ -263,25 +240,19 @@ void	handleTopicCommand(User &user, std::string const &message, std::vector<Chan
 	split(message, splitMessage, ' ');
 	std::string channelName = splitMessage[1];
 	std::string newTopic = message.substr(message.find(":", 1) + 1);
-	// Cerco il canale
 	Channel *channel = findChannel(channelName, channels);
 	if (channel) {
 		if (channel->isOperator(user)) {
-			// Cambio il topic del canale
 			channel->setTopic(newTopic);
-
-			// Invio una notifica agli utenti del canale
 			std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + channel->getChannelName() + " :" + channel->getTopic() + "\r\n";
 			channel->broadcastMessage(topicMessage);
 		} else {
-			// L'utente non ha i permessi per cambiare il topic
 			const char *noPermissionMessage = ":482 * :You're not channel operator\r\n";
 			send(user.getSocket(), noPermissionMessage, strlen(noPermissionMessage), 0);
 		}
 		return;
 	}
 	else {
-		// Se il canale non esiste
 		const char *noChannelMessage = ":403 * :No such channel\r\n";
 		send(user.getSocket(), noChannelMessage, strlen(noChannelMessage), 0);
 	}
@@ -315,7 +286,7 @@ void handleKickCommand(User &user, std::vector<User> &users, std::string const &
 	}
 	for (size_t i = 0; i < channels.size(); i++)
 	{
-		if (channelName == channels[i].getChannelName() /*&& channels[i].isUserInChannel(user) && channels[i].isOperator(user)*/)
+		if (channelName == channels[i].getChannelName())
 		{
 			chn = &(channels[i]);
 			break;
@@ -340,8 +311,6 @@ void handleKickCommand(User &user, std::vector<User> &users, std::string const &
 		return;
 	}
 	std::string request = "KICK " + chn->getChannelName() + " " + splitMsg[2] + ":reason\r\n";
-	std::cout << "send : " << request << std::endl;
-	//send(target->getSocket(), request.c_str(), request.size(), 0);
 	std::string str = RPL_KICK(user.getNickName(), user.getUserName(), chn->getChannelName(), target->getNickName(), "reason_blbbl");
 	send(target->getSocket(), str.c_str(), str.size(), MSG_DONTWAIT);
 	chn->removeUser(*target);

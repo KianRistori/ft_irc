@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <iostream>
 
-Channel::Channel(std::string name) : channelName(name), inviteOnly(false), userLimit(-1)
+Channel::Channel(std::string name) : channelName(name), inviteOnly(false), topicRestriction(true), userLimit(-1)
 {}
 
 std::string Channel::getChannelName() const
@@ -101,12 +101,12 @@ void Channel::broadcastMessage(const std::string &message) {
 void Channel::removeUser(User user) {
     std::vector<User>::iterator it = std::find(userList.begin(), userList.end(), user);
     if (it != userList.end()) {
-        std::cout << "kicked user : " << (*it).getNickName() << std::endl;
+        // std::cout << "kicked user : " << (*it).getNickName() << std::endl;
         userList.erase(it);
-        for (size_t i = 0; i < userList.size(); i++)
-        {
-            std::cout << i << " : " << userList[i].getNickName() << std::endl;
-        }
+        // for (size_t i = 0; i < userList.size(); i++)
+        // {
+        //     std::cout << i << " : " << userList[i].getNickName() << std::endl;
+        // }
         
     }
 }
@@ -175,6 +175,26 @@ void Channel::updateUserList(User user) {
 		}
     userListMessage += "\r\n";
     this->broadcastMessage(userListMessage);
+}
+
+void Channel::setPassword(std::string password) {
+    this->password = password;
+}
+
+bool Channel::checkChannelPassword(std::string password) {
+    if (password == "")
+        return true;
+    else if (this->password == password)
+        return true;
+    return false;
+}
+
+void Channel::setTopicRestriction(bool topicRestriction) {
+    this->topicRestriction = topicRestriction;
+}
+
+bool Channel::getTopicRestriction() {
+    return this->topicRestriction;
 }
 
 Channel::~Channel() { }

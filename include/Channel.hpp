@@ -41,5 +41,7 @@ public:
     bool checkChannelPassword(std::string password);
     void setTopicRestriction(bool topicRestriction);
     bool getTopicRestriction();
+    void removeOperator(User user);
+    User *findUserInChannel(std::string targetName);
     ~Channel();
 };

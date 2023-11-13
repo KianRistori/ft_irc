@@ -197,4 +197,20 @@ bool Channel::getTopicRestriction() {
     return this->topicRestriction;
 }
 
+void Channel::removeOperator(User user) {
+    std::vector<User>::iterator it = std::find(operators.begin(), operators.end(), user);
+    if (it != userList.end()) {
+        userList.erase(it);
+    }
+}
+
+User *Channel::findUserInChannel(std::string targetName) {
+    for (size_t i = 0; i < this->userList.size(); i++)
+    {
+        if (this->userList[i].getNickName() == targetName)
+            return &this->userList[i];
+    }
+    return NULL;
+}
+
 Channel::~Channel() { }

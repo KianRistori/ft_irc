@@ -215,22 +215,28 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
         send(user.getSocket(), modeErrorMessage.c_str(), strlen(modeErrorMessage.c_str()), 0);
         return;
     }
-	if (splitMessage.size() == 3) {
-		std::string channelName = splitMessage[1];
-		Channel *targetChannel = findChannel(channelName, channels);
-		if (!targetChannel) {
-		    std::string noSuchChannelErrorMessage = "403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";
-		    send(user.getSocket(), noSuchChannelErrorMessage.c_str(), strlen(noSuchChannelErrorMessage.c_str()), 0);
-		    return;
-		}
-		std::string modeChange = splitMessage[2];
-		std::cout << "modeChange: " << modeChange << std::endl;
-		modeChange.erase(modeChange.length() - 1);
-		if (targetChannel->isOperator(user)) {
-			if (modeChange == "+i" || modeChange == "-i")
-				modSetInviteOnly(targetChannel, modeChange);
-			else if (modeChange == "+l" || modeChange == "-l")
-				modSetLimit(targetChannel, modeChange, splitMessage, user);
+	if (splitMessage.size() > 2)
+	{
+		char val = splitMessage[2][1];
+		switch (val)
+		{
+		case 'i':
+			/* code */
+			break;
+		case 't':
+			/* code */
+			break;
+		case 'k':
+			/* code */
+			break;
+		case 'o':
+			/* code */
+			break;
+		case 'l':
+			/* code */
+			break;
+		default:
+			break;
 		}
 	}
 }

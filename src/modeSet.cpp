@@ -107,7 +107,7 @@ void modeSetChannelOperator(Channel *targetChannel, std::vector<std::string> spl
             splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
             std::string targetName = splitMessage[splitMessage.size() - 1];
             User *userTarget = targetChannel->findUserInChannel(targetName);
-            targetChannel->addOperators(*userTarget);
+            targetChannel->removeOperator(*userTarget);
             std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -o " + userTarget->getNickName() + "\r\n";
             targetChannel->broadcastMessage(modeConfirmation);
         }

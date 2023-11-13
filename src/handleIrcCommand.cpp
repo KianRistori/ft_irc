@@ -171,6 +171,8 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
 		std::string userListMessage = ": 353 " + user.getNickName() + " = " + channelName + " :" + user.getNickName() + "\r\n";
 		send(user.getSocket(), userListMessage.c_str(), userListMessage.length(), 0);
+		std::string modeOperator = "MODE " + channelName + " +o " + user.getNickName() + "\r\n";
+		send(user.getSocket(), modeOperator.c_str(), modeOperator.length(), 0);
 	}
 }
 

@@ -167,12 +167,13 @@ void Channel::handleJoinMessage(User user) {
 
 void Channel::updateUserList(User user) {
     std::string userListMessage = ": 353 " + user.getNickName() + " = " + this->getChannelName() + " :";
-		for (size_t i = 0; i < userList.size(); i++) {
-			userListMessage += userList[i].getNickName();
-			if (i < userList.size() - 1) {
-				userListMessage += " ";
-			}
-		}
+    for (size_t i = 0; i < userList.size(); i++) {
+        std::string userPrefix = this->isOperator(userList[i]) ? "@" : "";
+        userListMessage += userPrefix + userList[i].getNickName();
+        if (i < userList.size() - 1) {
+            userListMessage += " ";
+        }
+    }
     userListMessage += "\r\n";
     this->broadcastMessage(userListMessage);
 }

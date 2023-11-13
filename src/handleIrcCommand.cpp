@@ -132,8 +132,6 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
                 return;
             }
 		}
-
-		//QUI HO SBAGLIATO VA CONTROLLATA LA PASSWORD
 		std::string providedPassword;
 		if (splitMessage.size() == 3)
 			providedPassword = splitMessage[2].erase(splitMessage[2].size() - 1);
@@ -231,19 +229,19 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
 		switch (val)
 		{
 		case 'i':
-				modSetInviteOnly(targetChannel, splitMessage[2][0]);
+				modSetInviteOnly(targetChannel, splitMessage[2][0], user);
 			break;
 		case 't':
-				modSetTopicRestrictions(targetChannel, splitMessage[2][0]);
+				modSetTopicRestrictions(targetChannel, splitMessage[2][0], user);
 			break;
 		case 'k':
-				modeChannelKey(targetChannel, splitMessage, splitMessage[2][0]);
+				modeSetChannelKey(targetChannel, splitMessage, splitMessage[2][0], user);
 			break;
 		case 'o':
-			/* code */
+				modeSetChannelOperator(targetChannel, splitMessage, splitMessage[2][0], user);
 			break;
 		case 'l':
-				modSetLimit(targetChannel, splitMessage, splitMessage[2][0]);
+				modSetLimit(targetChannel, splitMessage, splitMessage[2][0], user);
 			break;
 		default:
 			break;

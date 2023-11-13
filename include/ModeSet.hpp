@@ -3,5 +3,7 @@
 #include "../include/Channel.hpp"
 #include "../include/User.hpp"
 
-void modSetInviteOnly(Channel *targetChannel ,std::string &modeChange);
-void modSetLimit(Channel *targetChannel ,std::string &modeChange, std::vector<std::string> splitMessage, User user);
+void modSetInviteOnly(Channel *targetChannel, char sign);
+void modSetLimit(Channel *targetChannel, std::vector<std::string> splitMessage, char sign);
+void modSetTopicRestrictions(Channel *targetChannel, char sign);
+void modeChannelKey(Channel *targetChannel, std::vector<std::string> splitMessage, char sign);

@@ -15,29 +15,57 @@
 #include <sys/time.h>
 #include <vector>
 
-void modSetInviteOnly(Channel *targetChannel ,std::string &modeChange) {
-    if (modeChange == "+i") {
+void modSetInviteOnly(Channel *targetChannel, char sign) {
+    if (sign == '+') {
         targetChannel->setInviteOnly(true);
         std::string modeChangeMessage = "MODE " + targetChannel->getChannelName() + " +i\r\n";
         targetChannel->broadcastMessage(modeChangeMessage);
-    } else if (modeChange == "-i") {
+    } else if (sign == '-') {
         targetChannel->setInviteOnly(false);
         std::string modeChangeMessage = "MODE " + targetChannel->getChannelName() + " -i\r\n";
         targetChannel->broadcastMessage(modeChangeMessage);
     }
 }
 
-void modSetLimit(Channel *targetChannel ,std::string &modeChange, std::vector<std::string> splitMessage, User user) {
-    if (modeChange == "+l") {
-        std::string limit = splitMessage[3];
-        limit.erase(limit.length() - 1);
-        targetChannel->setUserLimit(atoi(limit.c_str()));
-        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +l " + limit + "\r\n";
-        send(user.getSocket(), modeConfirmation.c_str(), strlen(modeConfirmation.c_str()), 0);
+void modSetLimit(Channel *targetChannel, std::vector<std::string> splitMessage, char sign) {
+    if (sign == '+') {
+        splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+        int maxSize = std::atoi(splitMessage[splitMessage.size() - 1].c_str());
+        targetChannel->setUserLimit(maxSize);
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +l " + splitMessage[splitMessage.size() - 1] + "\r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
     }
-    else if (modeChange == "-l") {
+    else if (sign == '-') {
         targetChannel->removeUserLimit();
         std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -l\r\n";
-        send(user.getSocket(), modeConfirmation.c_str(), strlen(modeConfirmation.c_str()), 0);
+        targetChannel->broadcastMessage(modeConfirmation);
+    }
+}
+
+void modSetTopicRestrictions(Channel *targetChannel, char sign) {
+    if (sign == '+') {
+        targetChannel->setTopicRestriction(true);
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +t \r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
+    }
+    else if (sign == '-') {
+        targetChannel->setTopicRestriction(false);
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -t \r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
+    }
+}
+
+void modeChannelKey(Channel *targetChannel, std::vector<std::string> splitMessage, char sign) {
+    if (sign == '+') {
+        splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+        // std::cout << "password: " << splitMessage[splitMessage.size() - 1] << std::endl;
+        targetChannel->setPassword(splitMessage[splitMessage.size() - 1]);
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +k \r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
+    }
+    else if (sign == '-') {
+        targetChannel->setPassword("");
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -k \r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
     }
 }

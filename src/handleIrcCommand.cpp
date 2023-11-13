@@ -128,6 +128,9 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
                 return;
             }
 		}
+
+		//QUI HO SBAGLIATO VA CONTROLLATA LA PASSWORD
+		
 		if (splitMessage.size() == 3) {
 			std::string providedPassword = splitMessage[2];
             if (existingChannel->checkChannelPassword(providedPassword)) {
@@ -217,23 +220,25 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
     }
 	if (splitMessage.size() > 2)
 	{
+		std::string channelName = splitMessage[1];
+		Channel *targetChannel = findChannel(channelName, channels);
 		char val = splitMessage[2][1];
 		switch (val)
 		{
 		case 'i':
-			/* code */
+				modSetInviteOnly(targetChannel, splitMessage[2][0]);
 			break;
 		case 't':
-			/* code */
+				modSetTopicRestrictions(targetChannel, splitMessage[2][0]);
 			break;
 		case 'k':
-			/* code */
+				modeChannelKey(targetChannel, splitMessage, splitMessage[2][0]);
 			break;
 		case 'o':
 			/* code */
 			break;
 		case 'l':
-			/* code */
+				modSetLimit(targetChannel, splitMessage, splitMessage[2][0]);
 			break;
 		default:
 			break;
@@ -248,7 +253,7 @@ void	handleTopicCommand(User &user, std::string const &message, std::vector<Chan
 	std::string newTopic = message.substr(message.find(":", 1) + 1);
 	Channel *channel = findChannel(channelName, channels);
 	if (channel) {
-		if (channel->isOperator(user)) {
+		if (channel->isOperator(user) || channel->getTopicRestriction() == false) {
 			channel->setTopic(newTopic);
 			std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + channel->getChannelName() + " :" + channel->getTopic() + "\r\n";
 			channel->broadcastMessage(topicMessage);

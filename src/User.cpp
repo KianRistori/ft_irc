@@ -49,4 +49,10 @@ std::string User::getUserName() const
     return userName;
 }
 
-User::~User() { }
+std::string User::getRealName() const
+{
+    return realName;
+}
+
+
+User::~User() {}

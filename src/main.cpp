@@ -1,6 +1,7 @@
 #include "../include/User.hpp"
 #include "../include/Channel.hpp"
 #include "../include/HandleIrcCommand.hpp"
+#include "../include/IrcBot.hpp"
 
 #define TRUE   1
 #define FALSE  0
@@ -9,6 +10,7 @@ std::string server_password;
 
 void handleIRCMessage(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels) {
     std::cout << message << std::endl;
+    IrcBot bot;
 
     if (message.find("PASS :") == 0)
         handlePassCommand(user, message, server_password);
@@ -42,6 +44,9 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
         
     else if (message.find("MODE") == 0) 
         handleModeCommand(user, message, channels);
+
+    else if (message.compare("!info\n") == 0)
+        bot.replyInfo(user);
 }
 
 int main(int argc, char *argv[])
@@ -146,6 +151,8 @@ int main(int argc, char *argv[])
             User newUser("newUser", new_socket);
             users.push_back(newUser);
             printf("Adding to list of sockets\n");
+            IrcBot bot;
+            bot.infoMessage(newUser);
         }
 
         for (size_t i = 0; i < users.size(); i++)

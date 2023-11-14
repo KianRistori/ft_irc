@@ -78,7 +78,21 @@ void	handleUserCommand(User &user, std::string const &message) {
 	}
 }
 
+void    handleFileTransfer(User &user, std::string const &message)
+{
+
+}
+
 void	handlePrivMsgCommand(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels) {
+	std::vector<std::string> strs;
+	split(message, strs, ' ');
+
+	for (size_t i = 0; i < strs.size(); i++)
+	{
+		if (strs[i].compare(":DCC") && strs[i + 1].compare("SEND"))
+			handleFileTransfer(user, message);
+	}
+	
 	std::vector<std::string> splitMessage;
 	split(message, splitMessage, ' ');
 	std::string nickname = user.getNickName();

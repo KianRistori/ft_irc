@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <vector>
+#include <fstream>
 
 # define RPL_KICK(nick,user, channel, kickuser, msg) ":" + nick + "!" + user + "@" + " KICK " + channel + " " + kickuser + " " + msg + "\r\n"
 

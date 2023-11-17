@@ -33,14 +33,12 @@ void Channel::addUser(User user)
 
 void Channel::addOperators(User user)
 {
-    bool find = false;
     for (size_t i = 0; i < operators.size(); i++)
     {
         if (operators[i].getNickName() == user.getNickName())
-            find = true;
+            return;
     }
-    if (find == false)
-        operators.push_back(user);
+    operators.push_back(user);
 }
 
 std::vector<User>   Channel::getUserList() const {
@@ -101,13 +99,7 @@ void Channel::broadcastMessage(const std::string &message) {
 void Channel::removeUser(User user) {
     std::vector<User>::iterator it = std::find(userList.begin(), userList.end(), user);
     if (it != userList.end()) {
-        // std::cout << "kicked user : " << (*it).getNickName() << std::endl;
         userList.erase(it);
-        // for (size_t i = 0; i < userList.size(); i++)
-        // {
-        //     std::cout << i << " : " << userList[i].getNickName() << std::endl;
-        // }
-        
     }
 }
 

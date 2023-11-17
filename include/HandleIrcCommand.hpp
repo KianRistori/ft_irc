@@ -15,9 +15,10 @@
 #include <sys/time.h>
 #include <vector>
 #include <fstream>
+#include <csignal>
+#include <cstdio>
 
-# define RPL_KICK(nick,user, channel, kickuser, msg) ":" + nick + "!" + user + "@" + " KICK " + channel + " " + kickuser + " " + msg + "\r\n"
-
+# define RPL_KICK(nick, user, channel, kickuser, msg) ":" + nick + "!" + user + "@" + " KICK " + channel + " " + kickuser + " " + msg + "\r\n"
 
 void	handlePassCommand(User &user, std::string const &message, std::string &server_password);
 void	handleNickCommand(User &user, std::string const &message, std::vector<User> &users);
@@ -30,5 +31,4 @@ void	handleTopicCommand(User &user, std::string const &message, std::vector<Chan
 void	handlePingCommand(User &user, std::string const &message);
 void    handleKickCommand(User &user, std::vector<User> &users, std::string const &message, std::vector<Channel> &channels);
 void    handleModeCommand(User &user, std::string const &message, std::vector<Channel> &channels);
-void    handleFileTransfer(User &user, std::string const &message);
-//void    handleLeaveCommand(User &user, std::string const &message, std::vector<Channel> &channels);
+void    handleDCCOffer(const std::string &message, std::vector<User> &users);

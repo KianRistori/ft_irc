@@ -8,6 +8,11 @@
 
 std::string server_password;
 
+static void signalHandler(int signum) {
+    std::cout << "Interrupt signal (" << signum << ") received.\n";
+    exit(signum);
+}
+
 void handleIRCMessage(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels) {
     std::cout << message << std::endl;
     IrcBot bot;
@@ -20,6 +25,10 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
 
     else if (message.find("USER ") == 0)
         handleUserCommand(user, message);
+
+    else if (message.find("PRIVMSG") == 0 && message.find("DCC SEND") != std::string::npos) {
+        handleDCCOffer(message, users);
+    }
 
     else if (message.find("PRIVMSG") == 0)
         handlePrivMsgCommand(user, message, users, channels);
@@ -79,8 +88,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    if( setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt,
-          sizeof(opt)) < 0 )
+    if( setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt,sizeof(opt)) < 0 )
     {
         perror("setsockopt");
         exit(EXIT_FAILURE);
@@ -95,7 +103,7 @@ int main(int argc, char *argv[])
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-    printf("Listener on port %d \n", port);
+    std::cout << "Listener on port: " << port << std::endl;
 
     if (listen(master_socket, 3) < 0)
     {
@@ -104,7 +112,9 @@ int main(int argc, char *argv[])
     }
 
     addrlen = sizeof(address);
-    puts("Waiting for connections ...");
+    std::cout << "Waiting for connections ..." << std::endl;
+
+    signal(SIGINT, signalHandler);
 
     while(TRUE)
     {
@@ -127,9 +137,7 @@ int main(int argc, char *argv[])
         activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);
 
         if ((activity < 0) && (errno!=EINTR))
-        {
-            printf("select error");
-        }
+            std::cout << "select error" << std::endl;
 
         if (FD_ISSET(master_socket, &readfds))
         {
@@ -139,18 +147,18 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
 
-            printf("New connection , socket fd is %d , ip is : %s , port : %d\n", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+            std::cout << "New connection , socket fd is: " << new_socket << ", ip is: " << inet_ntoa(address.sin_addr)  << ", port: " << ntohs(address.sin_port) << std::endl;
 
             if (send(new_socket, message, static_cast<ssize_t>(strlen(message)), 0) != static_cast<ssize_t>(strlen(message)))
             {
                 perror("send");
             }
 
-            puts("Welcome message sent successfully");
+            std::cout << "Welcome message sent successfully" << std::endl;
 
             User newUser("newUser", new_socket);
             users.push_back(newUser);
-            printf("Adding to list of sockets\n");
+            std::cout << "Adding to list of sockets" << std::endl;
             IrcBot bot;
             bot.infoMessage(newUser);
         }
@@ -163,7 +171,7 @@ int main(int argc, char *argv[])
                 if ((valread = read( sd , buffer, 1024)) == 0)
                 {
                     getpeername(sd , (struct sockaddr*)&address, (socklen_t*)&addrlen);
-                    printf("Host disconnected , ip %s , port %d , nickname %s\n", inet_ntoa(address.sin_addr) , ntohs(address.sin_port), users[i].getNickName().c_str());
+                    std::cout << "Host disconnected ip: " << inet_ntoa(address.sin_addr) << ", port: " << ntohs(address.sin_port) << ", nickname: " << users[i].getNickName() << std::endl;
 
                     close( sd );
                     users[i].setSocket(0);

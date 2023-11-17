@@ -1,10 +1,10 @@
 #pragma once
+
 #include "../include/User.hpp"
 #include <sys/socket.h>
 #include <iostream>
 #include <sstream>
 #include <cstdio>
-
 
 class IrcBot
 {

@@ -52,6 +52,7 @@
         "optional": "cpp",
         "fstream": "cpp",
         "ranges": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "csignal": "cpp"
     }
 }

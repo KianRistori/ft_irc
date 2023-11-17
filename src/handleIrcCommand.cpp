@@ -28,6 +28,37 @@ static size_t split(const std::string &txt, std::vector<std::string> &strs, char
 	return strs.size();
 }
 
+void handleDCCOffer(const std::string &message, std::vector<User> &users) {
+    std::vector<std::string> dccParams;
+    split(message, dccParams, ' ');
+
+	int clientSocket;
+	std::string targetNick;
+	for (size_t i = 0; i < users.size(); i++)
+	{
+		if (users[i].getNickName() == dccParams[1]) {
+			clientSocket = users[i].getSocket();
+			targetNick = users[i].getNickName();
+			break;
+		}
+	}
+	
+    if (dccParams.size() >= 6) {
+        std::string command = dccParams[3];
+
+        if (command == "SEND") {
+    		std::string dccRequest = ":" + targetNick + " " + message;
+			std::cout << "dccRequest: " << dccRequest;
+			send(clientSocket, dccRequest.c_str(), dccRequest.length(), 0);
+
+        } else {
+            std::cerr << "Comando DCC non supportato: " << command << std::endl;
+        }
+    } else {
+        std::cerr << "Messaggio DCC non valido: " << message << std::endl;
+    }
+}
+
 void	handlePassCommand(User &user, std::string const &message, std::string &server_password) {
 	std::string pass = message.substr(6);
 	pass.erase(pass.length() - 1);
@@ -78,89 +109,7 @@ void	handleUserCommand(User &user, std::string const &message) {
 	}
 }
 
-void handleFileTransfer(std::vector<std::string> &strs) {
-    std::string clientAddress = strs[5];
-    int dccPort = atoi(strs[6].c_str());
-    int dccClientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in dccClientAddr;
-    dccClientAddr.sin_family = AF_INET;
-    dccClientAddr.sin_addr.s_addr = inet_addr(clientAddress.c_str());
-    dccClientAddr.sin_port = htons(dccPort);
-
-    if (connect(dccClientSocket, (struct sockaddr*)&dccClientAddr, sizeof(dccClientAddr)) == -1) {
-        std::cerr << "Errore nella connessione al client DCC." << std::endl;
-        close(dccClientSocket);
-        return;
-    }
-
-    std::string targetNickName = strs[1];
-    std::string filename = "/home/kian/example/file.txt";
-    int bufferSize = atoi(strs[strs.size() - 1].erase(strs[strs.size() - 1].length() - 1).c_str());
-
-    // Fase di negoziazione
-    std::string negotiationMessage = "DCC RESUME " + filename + " " + strs[6] + " 0";  // Imposta position come 0, puoi adattarlo secondo necessità
-    send(dccClientSocket, negotiationMessage.c_str(), negotiationMessage.length(), 0);
-
-    // Ricevi la risposta del client DCC
-    char responseBuffer[1024];  // Dimensione arbitraria per la risposta
-    ssize_t bytesRead = recv(dccClientSocket, responseBuffer, sizeof(responseBuffer), 0);
-    if (bytesRead == -1) {
-        std::cerr << "Errore nella ricezione della risposta del client DCC." << std::endl;
-        close(dccClientSocket);
-        return;
-    }
-
-    responseBuffer[bytesRead] = '\0';  // Assicura che il buffer sia terminato correttamente
-
-    // Analizza la risposta
-    std::string response(responseBuffer);
-
-    if (response.find("DCC ACCEPT") == 0) {
-        // Invia la conferma di accettazione
-        send(dccClientSocket, response.c_str(), response.length(), 0);
-    } else {
-        std::cout << "Trasferimento DCC annullato dal client." << std::endl;
-        close(dccClientSocket);
-        return;
-    }
-
-    // Ricevi il file dal client DCC
-    std::ifstream file(filename.c_str(), std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Errore nell'apertura del file: " << filename << std::endl;
-        close(dccClientSocket);
-        return;
-    }
-
-    char buffer[bufferSize];
-    while (file.read(buffer, bufferSize) || file.gcount() > 0) {
-        ssize_t sentBytes = send(dccClientSocket, buffer, file.gcount(), 0);
-        if (sentBytes == -1) {
-            std::cerr << "Errore nell'invio del file." << std::endl;
-            break;
-        }
-    }
-
-    file.close();
-
-    std::cout << "Trasferimento DCC completato. File ricevuto: " << filename << std::endl;
-
-    // Chiudi la connessione con il client DCC
-    close(dccClientSocket);
-}
-
 void	handlePrivMsgCommand(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels) {
-	std::vector<std::string> strs;
-	split(message, strs, ' ');
-
-	for (size_t i = 0; i < strs.size(); i++)
-	{
-		if (strs[i].compare(":DCC") && strs[i + 1].compare("SEND")) {
-			handleFileTransfer(strs);
-			return;
-		}
-	}
-	
 	std::vector<std::string> splitMessage;
 	split(message, splitMessage, ' ');
 	std::string nickname = user.getNickName();

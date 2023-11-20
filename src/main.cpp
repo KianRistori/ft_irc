@@ -6,8 +6,13 @@
 #define TRUE   1
 #define FALSE  0
 
+std::vector<User> users;
+std::vector<Channel> channels;
+
 static void signalHandler(int signum) {
     std::cout << "Irc server stop running" << std::endl;
+    users.clear();
+    channels.clear();
     exit(signum);
 }
 
@@ -79,8 +84,7 @@ int main(int argc, char *argv[])
 
     const char *message = "ECHO Daemon v1.0 \r\n";
 
-    std::vector<User> users;
-    std::vector<Channel> channels;
+
 
     if( (master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)
     {

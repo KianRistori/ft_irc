@@ -102,7 +102,6 @@ void modeSetChannelOperator(Channel *targetChannel, std::vector<std::string> spl
             targetChannel->addOperators(*userTarget);
             std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +o " + userTarget->getNickName() + "\r\n";
             targetChannel->broadcastMessage(modeConfirmation);
-            delete userTarget;
         }
         else if (sign == '-') {
             splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);

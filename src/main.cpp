@@ -6,14 +6,12 @@
 #define TRUE   1
 #define FALSE  0
 
-std::string server_password;
-
 static void signalHandler(int signum) {
-    std::cout << "Interrupt signal (" << signum << ") received.\n";
+    std::cout << "Irc server stop running" << std::endl;
     exit(signum);
 }
 
-void handleIRCMessage(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels) {
+void handleIRCMessage(User &user, std::string const &message, std::vector<User> &users, std::vector<Channel> &channels, std::string server_password) {
     std::cout << message << std::endl;
     IrcBot bot;
 
@@ -26,9 +24,8 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
     else if (message.find("USER ") == 0)
         handleUserCommand(user, message);
 
-    else if (message.find("PRIVMSG") == 0 && message.find("DCC SEND") != std::string::npos) {
+    else if (message.find("PRIVMSG") == 0 && message.find("DCC SEND") != std::string::npos)
         handleDCCOffer(message, users);
-    }
 
     else if (message.find("PRIVMSG") == 0)
         handlePrivMsgCommand(user, message, users, channels);
@@ -54,6 +51,9 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
     else if (message.find("MODE") == 0) 
         handleModeCommand(user, message, channels);
 
+    else if (message.find("QUIT") == 0)
+        handleQuitCommand(user, users);
+
     else if (message.compare("!info\n") == 0)
         bot.replyInfo(user);
 }
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     }
 
     int port = std::atoi(argv[1]);
-    server_password = argv[2];
+    std::string server_password = argv[2];
 
     int opt = TRUE;
     int master_socket , addrlen , new_socket, activity, valread , sd;
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
                 else
                 {
                     buffer[valread] = '\0';
-                    handleIRCMessage(users[i], std::string(buffer), users, channels);
+                    handleIRCMessage(users[i], std::string(buffer), users, channels, server_password);
                 }
             }
         }

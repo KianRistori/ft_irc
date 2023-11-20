@@ -31,4 +31,5 @@ void	handleTopicCommand(User &user, std::string const &message, std::vector<Chan
 void	handlePingCommand(User &user, std::string const &message);
 void    handleKickCommand(User &user, std::vector<User> &users, std::string const &message, std::vector<Channel> &channels);
 void    handleModeCommand(User &user, std::string const &message, std::vector<Channel> &channels);
+void    handleQuitCommand(User &user, std::vector<User> &users);
 void    handleDCCOffer(const std::string &message, std::vector<User> &users);

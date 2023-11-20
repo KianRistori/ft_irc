@@ -78,7 +78,7 @@ void modeSetChannelKey(Channel *targetChannel, std::vector<std::string> splitMes
         if (sign == '+') {
             splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
             targetChannel->setPassword(splitMessage[splitMessage.size() - 1]);
-            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +k \r\n";
+            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +k " + splitMessage[splitMessage.size() - 1] + "\r\n";
             targetChannel->broadcastMessage(modeConfirmation);
         }
         else if (sign == '-') {

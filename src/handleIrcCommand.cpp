@@ -1,5 +1,6 @@
 #include "../include/HandleIrcCommand.hpp"
 #include "../include/ModeSet.hpp"
+#include <algorithm>
 
 static Channel *findChannel(std::string &name, std::vector<Channel> &channels) {
 	for (size_t i = 0; i < channels.size(); i++)
@@ -173,7 +174,7 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 			providedPassword = splitMessage[2].erase(splitMessage[2].size() - 1);
 		else
 			providedPassword = "";
-		std::cout << "provided password : " << providedPassword << std::endl;
+		// std::cout << "provided password : " << providedPassword << std::endl;
 		if (existingChannel->checkChannelPassword(providedPassword)) {
 			existingChannel->addUser(user);
 		} else {
@@ -368,4 +369,11 @@ void handleKickCommand(User &user, std::vector<User> &users, std::string const &
 	chn->removeUser(*target);
 	chn->broadcastMessage(str);
 	std::cout << "User " << splitMsg[2] << " kicked from channel " << chn->getChannelName() << std::endl;
+}
+
+void handleQuitCommand(User &user, std::vector<User> &users) {
+	std::vector<User>::iterator it = std::find(users.begin(), users.end(), user);
+    if (it != users.end()) {
+        users.erase(it);
+    }
 }

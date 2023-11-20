@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "User.hpp"
+
 class Channel
 {
 private:

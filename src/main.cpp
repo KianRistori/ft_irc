@@ -52,12 +52,12 @@ void handleIRCMessage(User &user, std::string const &message, std::vector<User> 
 
     else if (message.find("KICK") == 0)
         handleKickCommand(user, users, message, channels);
-        
-    else if (message.find("MODE") == 0) 
+
+    else if (message.find("MODE") == 0)
         handleModeCommand(user, message, channels);
 
     else if (message.find("QUIT") == 0)
-        handleQuitCommand(user, users);
+        handleQuitCommand(user, users, channels);
 
     else if (message.compare("!info\n") == 0)
         bot.replyInfo(user);

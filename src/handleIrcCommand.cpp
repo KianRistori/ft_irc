@@ -43,7 +43,7 @@ void handleDCCOffer(const std::string &message, std::vector<User> &users) {
 			break;
 		}
 	}
-	
+
     if (dccParams.size() >= 6) {
         std::string command = dccParams[3];
 
@@ -363,15 +363,24 @@ void handleKickCommand(User &user, std::vector<User> &users, std::string const &
 		send(user.getSocket(), operatorPrivilegesNeeded.c_str(), operatorPrivilegesNeeded.size(), 0);
 		return;
 	}
-	std::string request = "KICK " + chn->getChannelName() + " " + splitMsg[2] + ":reason\r\n";
-	std::string str = RPL_KICK(user.getNickName(), user.getUserName(), chn->getChannelName(), target->getNickName(), "reason_blbbl");
+	std::string request = "KICK " + chn->getChannelName() + " " + splitMsg[2];
+	std::string str = RPL_KICK(user.getNickName(), user.getUserName(), chn->getChannelName(), target->getNickName());
 	send(target->getSocket(), str.c_str(), str.size(), MSG_DONTWAIT);
 	chn->removeUser(*target);
 	chn->broadcastMessage(str);
 	std::cout << "User " << splitMsg[2] << " kicked from channel " << chn->getChannelName() << std::endl;
 }
 
-void handleQuitCommand(User &user, std::vector<User> &users) {
+void handleQuitCommand(User &user, std::vector<User> &users, std::vector<Channel> &channels) {
+	for (size_t i = 0; i < channels.size(); i++)
+	{
+		if (channels[i].isUserInChannel(user)) {
+			std::string partMessage = ":" + user.getNickName() + "!" + user.getNickName() + " PART :" + channels[i].getChannelName() + "\r\n";
+			channels[i].broadcastMessage(partMessage);
+			channels[i].removeUser(user);
+			channels[i].updateUserList(user);
+		}
+	}
 	std::vector<User>::iterator it = std::find(users.begin(), users.end(), user);
     if (it != users.end()) {
         users.erase(it);

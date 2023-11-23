@@ -270,32 +270,50 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
         send(user.getSocket(), modeErrorMessage.c_str(), strlen(modeErrorMessage.c_str()), 0);
         return;
     }
-	if (splitMessage.size() > 2)
-	{
-		std::string channelName = splitMessage[1];
-		Channel *targetChannel = findChannel(channelName, channels);
-		char val = splitMessage[2][1];
-		switch (val)
-		{
-		case 'i':
-				modSetInviteOnly(targetChannel, splitMessage[2][0], user);
-			break;
-		case 't':
-				modSetTopicRestrictions(targetChannel, splitMessage[2][0], user);
-			break;
-		case 'k':
-				modeSetChannelKey(targetChannel, splitMessage, splitMessage[2][0], user);
-			break;
-		case 'o':
-				modeSetChannelOperator(targetChannel, splitMessage, splitMessage[2][0], user);
-			break;
-		case 'l':
-				modSetLimit(targetChannel, splitMessage, splitMessage[2][0], user);
-			break;
-		default:
-			break;
-		}
-	}
+
+    if (splitMessage.size() > 2) {
+        std::string channelName = splitMessage[1];
+        Channel *targetChannel = findChannel(channelName, channels);
+
+        for (size_t i = 2; i < splitMessage.size(); ++i) {
+            char val = splitMessage[i][1];
+			char sign = splitMessage[i][0];
+            switch (val) {
+                case 'i':
+                    modSetInviteOnly(targetChannel, sign, user);
+                    break;
+                case 't':
+                    modSetTopicRestrictions(targetChannel, sign, user);
+                    break;
+                case 'k':
+					if (sign == '+') {
+						if (i + 1 < splitMessage.size() && !splitMessage[i + 1].empty())
+							modeSetChannelKey(targetChannel, splitMessage[i + 1], user);
+					}
+					else if (sign == '-')
+						modeRemoveChannelKey(targetChannel, user);
+                    break;
+                case 'o':
+					if (i + 1 < splitMessage.size() && !splitMessage[i + 1].empty()) {
+						if (sign == '+')
+							modeSetChannelOperator(targetChannel, splitMessage[i + 1], user);
+						else if (sign == '-')
+							modeRemoveChannelOperator(targetChannel, splitMessage[i + 1], user);
+					}
+                    break;
+                case 'l':
+					if (sign == '+') {
+						if (i + 1 < splitMessage.size() && !splitMessage[i + 1].empty())
+							modSetLimit(targetChannel, splitMessage[i + 1], user);
+					}
+					else if (sign == '-')
+						modeRemoveLimit(targetChannel, user);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }
 
 void	handleTopicCommand(User &user, std::string const &message, std::vector<Channel> &channels) {

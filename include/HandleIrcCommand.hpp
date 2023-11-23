@@ -17,6 +17,7 @@
 #include <fstream>
 #include <csignal>
 #include <cstdio>
+#include <map>
 
 # define RPL_KICK(nick, user, channel, kickuser) ":" + nick + "!" + user + "@" + " KICK " + channel + " " + kickuser + "\r\n"
 
@@ -33,3 +34,7 @@ void    handleKickCommand(User &user, std::vector<User> &users, std::string cons
 void    handleModeCommand(User &user, std::string const &message, std::vector<Channel> &channels);
 void	handleQuitCommand(User &user, std::vector<User> &users, std::vector<Channel> &channels);
 void    handleDCCOffer(const std::string &message, std::vector<User> &users);
+std::map<std::string, std::string>  parseJoinMsg(std::string const &message);
+std::pair<std::string, std::string> parseChannel(std::string const &message);
+
+

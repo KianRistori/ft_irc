@@ -2,7 +2,7 @@
 #include "../include/ModeSet.hpp"
 #include <algorithm>
 
-static Channel *findChannel(std::string &name, std::vector<Channel> &channels) {
+static Channel *findChannel(std::string const &name, std::vector<Channel> &channels) {
 	for (size_t i = 0; i < channels.size(); i++)
 	{
 		if (channels[i].getChannelName() == name)
@@ -155,71 +155,141 @@ void	handlePrivMsgCommand(User &user, std::string const &message, std::vector<Us
 	}
 }
 
-void	handleJoinCommand(User &user, std::string const &message, std::vector<Channel> &channels) {
+std::pair<std::string, std::string> parseChannel(std::string const &message)
+{
 	std::vector<std::string> splitMessage;
-	split(message, splitMessage, ' ');
 	std::string channelName;
-	if(splitMessage.size() == 2)
-		channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+	std::string password = "";
+	std::cout << message <<std::endl;
+	split(message, splitMessage, ' ');
+	if(splitMessage.size() != 2)
+		channelName = splitMessage[splitMessage.size() - 1];
 	else
+	{
 		channelName = splitMessage[splitMessage.size() -2];
+		password = splitMessage[splitMessage.size() - 1];
+	}
+	return std::pair<std::string, std::string>(channelName, password);
+}
 
-	Channel *existingChannel = findChannel(channelName, channels);
+std::map<std::string, std::string> parseJoinMsg(std::string const &message)
+{
+	std::map<std::string, std::string> map;
+	std::vector<std::string> splitMessage;
+	std::string channelName;
+	std::string password;
+	if (message.find(',') == std::string::npos)
+	{
+		split(message, splitMessage, ' ');
+		for (size_t i = 1; i < splitMessage.size(); i++)
+		{
+			if (splitMessage.size() > i + 1)
+			{
+				if (splitMessage[i].find('#') == 0 && splitMessage[i + 1].find('#') == 0){
+					map.insert(parseChannel(splitMessage[i] + ""));
+				}else{
+					map.insert(parseChannel(splitMessage[i] + " " + splitMessage[i + 1]));
+					i++;
+				}
+			}
+			else if (splitMessage[i].find('#') == 0 )
+				map.insert(parseChannel(splitMessage[i] + ""));
+		}
+	}
+	else
+	{
+		std::vector<std::string> subSplit;
+		split(message, subSplit, ',');
+		//std::cout <<"str : " << subSplit[0].find(' ')+1 << " : " << subSplit[0].size() << std::endl;
+		subSplit[0] = subSplit[0].substr(subSplit[0].find(' ')+1, subSplit[0].size());
+		//std::cout <<"str : " << subSplit[0] << std::endl;
+		for (size_t i = 0; i < subSplit.size(); i++)
+		{
+			map.insert(parseChannel(subSplit[i]));
+		}
+		
+	}
+	//map.insert(std::pair<std::string, std::string>(splitMessage[1], splitMessage[2]));
+	return map;
+}
 
-	if (existingChannel) {
-		if (!existingChannel->checkUserLimit()) {
-			std::string inviteOnlyErrorMessage = ":* 471 " + user.getNickName() + " " + channelName + ":Cannot join channel (+l)\r\n";
-			send(user.getSocket(), inviteOnlyErrorMessage.c_str(), strlen(inviteOnlyErrorMessage.c_str()), 0);
-			return;
-		}
-		if (existingChannel->getInviteOnly()) {
-			if (!existingChannel->isInvitedUser(user)) {
-				std::string inviteOnlyErrorMessage = ":* 473 " + user.getNickName() + " " + channelName + " :Channel is invite-only\r\n";
-                send(user.getSocket(), inviteOnlyErrorMessage.c_str(), strlen(inviteOnlyErrorMessage.c_str()), 0);
-                return;
-            }
-		}
-		std::string providedPassword;
-		if (splitMessage.size() == 3)
-			providedPassword = splitMessage[2].erase(splitMessage[2].size() - 1);
-		else
-			providedPassword = "";
-		// std::cout << "provided password : " << providedPassword << std::endl;
-		if (existingChannel->checkChannelPassword(providedPassword)) {
+void	handleJoinCommand(User &user, std::string const &message, std::vector<Channel> &channels) {
+	std::string msgCopy(message);
+	msgCopy.erase(msgCopy.length() - 1);
+	std::map<std::string, std::string> map = parseJoinMsg(msgCopy);
+	std::map<std::string, std::string>::iterator  it = map.begin();
+	//std::cout << "message" << it->first << std::endl;
+	//(void)user;
+	//(void)channels;
+	//std::vector<std::string> splitMessage;
+	//split(message, splitMessage, ' ');
+	//std::string channelName;
+	//if(splitMessage.size() == 2)
+	//	channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
+	//else
+	//	channelName = splitMessage[splitMessage.size() -2];
+
+	for ( ; it != map.end(); it++)
+	{
+		std::cout << it->first << " : " << it->second << std::endl;
+	
+		Channel *existingChannel = findChannel(it->first, channels);
+
+		if (existingChannel) {
+			if (!existingChannel->checkUserLimit()) {
+				std::string inviteOnlyErrorMessage = ":* 471 " + user.getNickName() + " " + it->first + ":Cannot join channel (+l)\r\n";
+				send(user.getSocket(), inviteOnlyErrorMessage.c_str(), strlen(inviteOnlyErrorMessage.c_str()), 0);
+				return;
+			}
+			if (existingChannel->getInviteOnly()) {
+				if (!existingChannel->isInvitedUser(user)) {
+					std::string inviteOnlyErrorMessage = ":* 473 " + user.getNickName() + " " + it->first + " :Channel is invite-only\r\n";
+					send(user.getSocket(), inviteOnlyErrorMessage.c_str(), strlen(inviteOnlyErrorMessage.c_str()), 0);
+					return;
+				}
+			}
+			std::string providedPassword;
+			if (it->second != "")
+				providedPassword = it->second;
+			else
+				providedPassword = "";
+			// std::cout << "provided password : " << providedPassword << std::endl;
+			if (existingChannel->checkChannelPassword(providedPassword)) {
+				existingChannel->addUser(user);
+			} else {
+				std::string passwordIncorrectMessage = ":* 475 " + user.getNickName() + " " + it->first + " :Password incorrect\r\n";
+				send(user.getSocket(), passwordIncorrectMessage.c_str(), strlen(passwordIncorrectMessage.c_str()), 0);
+				return;
+			}
+			//
 			existingChannel->addUser(user);
+			std::string joinMessage = ":" + user.getNickName() + " JOIN " + it->first + "\r\n";
+			send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
+
+			existingChannel->handleJoinMessage(user);
+
+			if (existingChannel->getTopic() == "") {
+				std::string topicMessage = ":" + user.getNickName() + " 331 " + user.getNickName() + " " + existingChannel->getChannelName() + " :No topic is set" + "\r\n";
+				send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+			} else {
+				std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
+				send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
+			}
+
+			existingChannel->updateUserList(user);
 		} else {
-			std::string passwordIncorrectMessage = ":* 475 " + user.getNickName() + " " + channelName + " :Password incorrect\r\n";
-			send(user.getSocket(), passwordIncorrectMessage.c_str(), strlen(passwordIncorrectMessage.c_str()), 0);
-			return;
+			Channel newChannel(it->first);
+			newChannel.addUser(user);
+			newChannel.addOperators(user);
+			channels.push_back(newChannel);
+
+			std::string joinMessage = ":" + user.getNickName() + " JOIN " + it->first + "\r\n";
+			send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
+			std::string userListMessage = ": 353 " + user.getNickName() + " = " + it->first + " :" + user.getNickName() + "\r\n";
+			send(user.getSocket(), userListMessage.c_str(), userListMessage.length(), 0);
+			std::string modeOperator = "MODE " + it->first + " +o " + user.getNickName() + "\r\n";
+			send(user.getSocket(), modeOperator.c_str(), modeOperator.length(), 0);
 		}
-		//
-		existingChannel->addUser(user);
-		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
-		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
-
-		existingChannel->handleJoinMessage(user);
-
-		if (existingChannel->getTopic() == "") {
-			std::string topicMessage = ":" + user.getNickName() + " 331 " + user.getNickName() + " " + existingChannel->getChannelName() + " :No topic is set" + "\r\n";
-			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
-		} else {
-			std::string topicMessage = ":" + user.getNickName() + " 332 " + user.getNickName() + " " + existingChannel->getChannelName() + " :" + existingChannel->getTopic() + "\r\n";
-			send(user.getSocket(), topicMessage.c_str(), topicMessage.length(), 0);
-		}
-
-		existingChannel->updateUserList(user);
-	} else {
-		Channel newChannel(channelName);
-		newChannel.addUser(user);
-		newChannel.addOperators(user);
-		channels.push_back(newChannel);
-
-		std::string joinMessage = ":" + user.getNickName() + " JOIN " + channelName + "\r\n";
-		send(user.getSocket(), joinMessage.c_str(), joinMessage.length(), 0);
-		std::string userListMessage = ": 353 " + user.getNickName() + " = " + channelName + " :" + user.getNickName() + "\r\n";
-		send(user.getSocket(), userListMessage.c_str(), userListMessage.length(), 0);
-		std::string modeOperator = "MODE " + channelName + " +o " + user.getNickName() + "\r\n";
-		send(user.getSocket(), modeOperator.c_str(), modeOperator.length(), 0);
 	}
 }
 

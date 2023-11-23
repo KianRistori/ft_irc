@@ -253,7 +253,7 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 				providedPassword = it->second;
 			else
 				providedPassword = "";
-			// std::cout << "provided password : " << providedPassword << std::endl;
+			// std::cout << "provided password:" << providedPassword << std::endl;
 			if (existingChannel->checkChannelPassword(providedPassword)) {
 				existingChannel->addUser(user);
 			} else {

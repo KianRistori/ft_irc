@@ -14,6 +14,18 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <vector>
+#include <algorithm>
+
+static bool checkPassword(const std::string &str) {
+    if (str.empty())
+        return true;
+    for (std::string::const_iterator it = str.begin(); it != str.end(); ++it) {
+        if (!std::isspace(*it) && *it != '\r' && *it != '\n') {
+            return false;
+        }
+    }
+    return true;
+}
 
 void modSetInviteOnly(Channel *targetChannel, char sign, User user) {
     if (targetChannel->isOperator(user)) {
@@ -33,18 +45,12 @@ void modSetInviteOnly(Channel *targetChannel, char sign, User user) {
     }
 }
 
-void modSetLimit(Channel *targetChannel, std::vector<std::string> splitMessage, char sign, User user) {
+void modSetLimit(Channel *targetChannel, std::string &limit, User user) {
     if (targetChannel->isOperator(user)) {
-        if (sign == '+') {
-            splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
-            int maxSize = std::atoi(splitMessage[splitMessage.size() - 1].c_str());
+        int maxSize = std::atoi(limit.c_str());
+        if (maxSize != 0) {
             targetChannel->setUserLimit(maxSize);
-            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +l " + splitMessage[splitMessage.size() - 1] + "\r\n";
-            targetChannel->broadcastMessage(modeConfirmation);
-        }
-        else if (sign == '-') {
-            targetChannel->removeUserLimit();
-            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -l\r\n";
+            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +l " + limit + "\r\n";
             targetChannel->broadcastMessage(modeConfirmation);
         }
     }
@@ -73,18 +79,16 @@ void modSetTopicRestrictions(Channel *targetChannel, char sign, User user) {
     }
 }
 
-void modeSetChannelKey(Channel *targetChannel, std::vector<std::string> splitMessage, char sign, User user) {
+void modeSetChannelKey(Channel *targetChannel, std::string &password,User user) {
     if (targetChannel->isOperator(user)) {
-        if (sign == '+') {
-            splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
-            targetChannel->setPassword(splitMessage[splitMessage.size() - 1]);
-            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +k " + splitMessage[splitMessage.size() - 1] + "\r\n";
+        if (!checkPassword(password)) {
+            targetChannel->setPassword(password);
+            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +k " + password + "\r\n";
             targetChannel->broadcastMessage(modeConfirmation);
         }
-        else if (sign == '-') {
-            targetChannel->setPassword("");
-            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -k \r\n";
-            targetChannel->broadcastMessage(modeConfirmation);
+        else {
+            const char *passwordErrorMessage = ":400 * :Password required for this operation\r\n";
+            send(user.getSocket(), passwordErrorMessage, strlen(passwordErrorMessage), 0);
         }
     }
     else {
@@ -93,24 +97,49 @@ void modeSetChannelKey(Channel *targetChannel, std::vector<std::string> splitMes
     }
 }
 
-void modeSetChannelOperator(Channel *targetChannel, std::vector<std::string> splitMessage, char sign, User user) {
+void modeRemoveChannelKey(Channel *targetChannel, User user) {
     if (targetChannel->isOperator(user)) {
-        if (sign == '+') {
-            splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
-            std::string targetName = splitMessage[splitMessage.size() - 1];
-            User *userTarget = targetChannel->findUserInChannel(targetName);
-            targetChannel->addOperators(*userTarget);
-            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +o " + userTarget->getNickName() + "\r\n";
-            targetChannel->broadcastMessage(modeConfirmation);
-        }
-        else if (sign == '-') {
-            splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
-            std::string targetName = splitMessage[splitMessage.size() - 1];
-            User *userTarget = targetChannel->findUserInChannel(targetName);
-            targetChannel->removeOperator(*userTarget);
-            std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -o " + userTarget->getNickName() + "\r\n";
-            targetChannel->broadcastMessage(modeConfirmation);
-        }
+        targetChannel->setPassword("");
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -k \r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
+    }
+    else {
+        const char *noPermissionMessage = ":482 * :You're not channel operator\r\n";
+        send(user.getSocket(), noPermissionMessage, strlen(noPermissionMessage), 0);
+    }
+}
+
+void modeSetChannelOperator(Channel *targetChannel, std::string &targetName, User user) {
+    if (targetChannel->isOperator(user)) {
+        User *userTarget = targetChannel->findUserInChannel(targetName);
+        targetChannel->addOperators(*userTarget);
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +o " + userTarget->getNickName() + "\r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
+    }
+    else {
+        const char *noPermissionMessage = ":482 * :You're not channel operator\r\n";
+        send(user.getSocket(), noPermissionMessage, strlen(noPermissionMessage), 0);
+    }
+}
+
+void modeRemoveChannelOperator(Channel *targetChannel, std::string &targetName, User user) {
+    if (targetChannel->isOperator(user)) {
+        User *userTarget = targetChannel->findUserInChannel(targetName);
+        targetChannel->removeOperator(*userTarget);
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -o " + userTarget->getNickName() + "\r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
+    }
+    else {
+        const char *noPermissionMessage = ":482 * :You're not channel operator\r\n";
+        send(user.getSocket(), noPermissionMessage, strlen(noPermissionMessage), 0);
+    }
+}
+
+void modeRemoveLimit(Channel *targetChannel, User user) {
+    if (targetChannel->isOperator(user)) {
+        targetChannel->removeUserLimit();
+        std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -l\r\n";
+        targetChannel->broadcastMessage(modeConfirmation);
     }
     else {
         const char *noPermissionMessage = ":482 * :You're not channel operator\r\n";

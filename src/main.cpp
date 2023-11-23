@@ -84,8 +84,6 @@ int main(int argc, char *argv[])
 
     const char *message = "ECHO Daemon v1.0 \r\n";
 
-
-
     if( (master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)
     {
         perror("socket failed");
@@ -176,7 +174,6 @@ int main(int argc, char *argv[])
                 {
                     getpeername(sd , (struct sockaddr*)&address, (socklen_t*)&addrlen);
                     std::cout << "Host disconnected ip: " << inet_ntoa(address.sin_addr) << ", port: " << ntohs(address.sin_port) << ", nickname: " << users[i].getNickName() << std::endl;
-
                     close( sd );
                     users[i].setSocket(0);
                 }

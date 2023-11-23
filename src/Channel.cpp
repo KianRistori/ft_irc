@@ -92,7 +92,7 @@ bool Channel::inviteUser(User user, std::string const &invitedNick, std::string 
 
 void Channel::broadcastMessage(const std::string &message) {
     for (size_t i = 0; i < userList.size(); i++) {
-        send(userList[i].getSocket(), message.c_str(), message.length(), MSG_DONTWAIT);
+        send(userList[i].getSocket(), message.c_str(), message.length(), 0);
     }
 }
 
@@ -205,6 +205,12 @@ User *Channel::findUserInChannel(std::string targetName) {
             return &this->userList[i];
     }
     return NULL;
+}
+
+bool Channel::isEmpty() const {
+    if (userList.size() == 0)
+        return true;
+    return false;
 }
 
 Channel::~Channel() { }

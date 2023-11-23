@@ -44,5 +44,6 @@ public:
     bool getTopicRestriction();
     void removeOperator(User user);
     User *findUserInChannel(std::string targetName);
+    bool isEmpty() const;
     ~Channel();
 };

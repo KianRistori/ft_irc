@@ -89,7 +89,7 @@ void	handleNickCommand(User &user, std::string const &message, std::vector<User>
 		send(user.getSocket(), nickTakenMessage.c_str(), strlen(nickTakenMessage.c_str()), 0);
 	} else {
 		user.setNickName(newNick);
-		std::string nickSetMessage = "001 " + newNick + " :Welcome to the IRC server\r\n";
+		std::string nickSetMessage = ":IRCSERVER 001 " + newNick + " :Welcome to the IRC server\r\n";
 		send(user.getSocket(), nickSetMessage.c_str(), strlen(nickSetMessage.c_str()), 0);
 	}
 }
@@ -105,8 +105,18 @@ void	handleUserCommand(User &user, std::string const &message) {
 		user.setUserName(username);
 		user.setRealName(realname);
 
-		std::string userSetMessage = "002 " + user.getNickName() + " :Your host is irc.example.com, running version ExampleIRCServer 1.0\r\n";
+		std::string userSetMessage = ":IRCSERVER 002 " + user.getNickName() + " :Your host is irc.example.com, running version ExampleIRCServer 1.0\r\n";
 		send(user.getSocket(), userSetMessage.c_str(), strlen(userSetMessage.c_str()), 0);
+		std::string rplCreatedMessage = ":IRCSERVER 003 " + user.getNickName() + " :This server was created in 2023 \r\n";
+		send(user.getSocket(), rplCreatedMessage.c_str(), strlen(rplCreatedMessage.c_str()), 0);
+		std::string myInfoMessage = ":IRCSERVER 004 " + user.getNickName() + " " + user.getNickName() + " irc.example.com ExampleIRCServer 1.0 " + "+i " + "+xyz" + " [123]\r\n";
+        send(user.getSocket(), myInfoMessage.c_str(), myInfoMessage.length(), 0);
+		std::string isupportMessage = ":IRCSERVER 005 " + user.getNickName() + " CHANTYPES=#& :are supported by this server\r\n";
+        send(user.getSocket(), isupportMessage.c_str(), isupportMessage.length(), 0);
+		std::string RPL_MOTD =  ":IRCSERVER 372 " + user.getNickName() + " :- Welcome to the IRCSERVER -\r\n";
+        send(user.getSocket(), RPL_MOTD.c_str(), RPL_MOTD.length(), 0);
+    	std::string RPL_ENDOFMOTD = ":IRCSERVER 376 " + user.getNickName() + " :End of MOTD command\r\n";
+        send(user.getSocket(), RPL_ENDOFMOTD.c_str(), RPL_ENDOFMOTD.length(), 0);
 	}
 }
 
@@ -375,10 +385,12 @@ void handleQuitCommand(User &user, std::vector<User> &users, std::vector<Channel
 	for (size_t i = 0; i < channels.size(); i++)
 	{
 		if (channels[i].isUserInChannel(user)) {
-			std::string partMessage = ":" + user.getNickName() + "!" + user.getNickName() + " PART :" + channels[i].getChannelName() + "\r\n";
-			channels[i].broadcastMessage(partMessage);
 			channels[i].removeUser(user);
-			channels[i].updateUserList(user);
+			if (!channels[i].isEmpty()) {
+				std::string partMessage = ":" + user.getNickName() + "!" + user.getNickName() + " PART :" + channels[i].getChannelName() + "\r\n";
+				channels[i].broadcastMessage(partMessage);
+				channels[i].updateUserList(user);
+			}
 		}
 	}
 	std::vector<User>::iterator it = std::find(users.begin(), users.end(), user);

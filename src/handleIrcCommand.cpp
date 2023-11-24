@@ -198,18 +198,27 @@ std::map<std::string, std::string> parseJoinMsg(std::string const &message)
 	}
 	else
 	{
-		std::vector<std::string> subSplit;
-		split(message, subSplit, ',');
-		//std::cout <<"str : " << subSplit[0].find(' ')+1 << " : " << subSplit[0].size() << std::endl;
-		subSplit[0] = subSplit[0].substr(subSplit[0].find(' ')+1, subSplit[0].size());
-		//std::cout <<"str : " << subSplit[0] << std::endl;
-		for (size_t i = 0; i < subSplit.size(); i++)
+		split(message, splitMessage, ' ');
+		std::vector<std::string> channelVector;
+		std::vector<std::string> passwordVector;
+		split(splitMessage[1], channelVector, ',');
+		split(splitMessage[2], passwordVector, ',');
+		for (size_t i = 0; i < channelVector.size(); i++)
 		{
-			map.insert(parseChannel(subSplit[i]));
+			if (passwordVector.size() <= i)
+			{
+				map.insert(std::pair<std::string, std::string>(channelVector[i], ""));
+			}
+			else
+			{
+				if (!passwordVector[i].compare("."))
+					map.insert(std::pair<std::string, std::string>(channelVector[i], ""));
+				else
+					map.insert(std::pair<std::string, std::string>(channelVector[i], passwordVector[i]));
+			}
 		}
 		
 	}
-	//map.insert(std::pair<std::string, std::string>(splitMessage[1], splitMessage[2]));
 	return map;
 }
 
@@ -218,16 +227,6 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 	msgCopy.erase(msgCopy.length() - 1);
 	std::map<std::string, std::string> map = parseJoinMsg(msgCopy);
 	std::map<std::string, std::string>::iterator  it = map.begin();
-	//std::cout << "message" << it->first << std::endl;
-	//(void)user;
-	//(void)channels;
-	//std::vector<std::string> splitMessage;
-	//split(message, splitMessage, ' ');
-	//std::string channelName;
-	//if(splitMessage.size() == 2)
-	//	channelName = splitMessage[splitMessage.size() - 1].erase(splitMessage[splitMessage.size() - 1].length() - 1);
-	//else
-	//	channelName = splitMessage[splitMessage.size() -2];
 
 	for ( ; it != map.end(); it++)
 	{

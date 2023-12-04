@@ -61,7 +61,7 @@ void modSetLimit(Channel *targetChannel, std::string &limit, User user) {
 }
 
 void modSetTopicRestrictions(Channel *targetChannel, char sign, User user) {
-    if (targetChannel->isOperator(user)) { 
+    if (targetChannel->isOperator(user)) {
         if (sign == '+') {
             targetChannel->setTopicRestriction(true);
             std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +t \r\n";
@@ -72,7 +72,7 @@ void modSetTopicRestrictions(Channel *targetChannel, char sign, User user) {
             std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -t \r\n";
             targetChannel->broadcastMessage(modeConfirmation);
         }
-    } 
+    }
     else {
         const char *noPermissionMessage = ":482 * :You're not channel operator\r\n";
         send(user.getSocket(), noPermissionMessage, strlen(noPermissionMessage), 0);
@@ -110,8 +110,14 @@ void modeRemoveChannelKey(Channel *targetChannel, User user) {
 }
 
 void modeSetChannelOperator(Channel *targetChannel, std::string &targetName, User user) {
+    std::cout << "call" << std::endl;
     if (targetChannel->isOperator(user)) {
         User *userTarget = targetChannel->findUserInChannel(targetName);
+        if (userTarget == NULL) {
+            const char *noNickMessage = ":482 * :No such nick\r\n";
+            send(user.getSocket(), noNickMessage, strlen(noNickMessage), 0);
+            return;
+        }
         targetChannel->addOperators(*userTarget);
         std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +o " + userTarget->getNickName() + "\r\n";
         targetChannel->broadcastMessage(modeConfirmation);
@@ -125,6 +131,12 @@ void modeSetChannelOperator(Channel *targetChannel, std::string &targetName, Use
 void modeRemoveChannelOperator(Channel *targetChannel, std::string &targetName, User user) {
     if (targetChannel->isOperator(user)) {
         User *userTarget = targetChannel->findUserInChannel(targetName);
+        if (userTarget == NULL) {
+            std::cout << "n" << std::endl;
+            const char *noNickMessage = ":482 * :No such nick\r\n";
+            send(user.getSocket(), noNickMessage, strlen(noNickMessage), 0);
+            return;
+        }
         targetChannel->removeOperator(*userTarget);
         std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " -o " + userTarget->getNickName() + "\r\n";
         targetChannel->broadcastMessage(modeConfirmation);

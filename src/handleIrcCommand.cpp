@@ -217,7 +217,7 @@ std::map<std::string, std::string> parseJoinMsg(std::string const &message)
 					map.insert(std::pair<std::string, std::string>(channelVector[i], passwordVector[i]));
 			}
 		}
-		
+
 	}
 	return map;
 }
@@ -231,7 +231,7 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 	for ( ; it != map.end(); it++)
 	{
 		std::cout << it->first << " : " << it->second << std::endl;
-	
+
 		Channel *existingChannel = findChannel(it->first, channels);
 
 		if (existingChannel) {
@@ -347,6 +347,8 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
         for (size_t i = 2; i < splitMessage.size(); ++i) {
             char val = splitMessage[i][1];
 			char sign = splitMessage[i][0];
+			std::cout << "val: " << val << std::endl;
+			std::cout << "sign: " << sign << std::endl;
             switch (val) {
                 case 'i':
                     modSetInviteOnly(targetChannel, sign, user);
@@ -368,6 +370,7 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
 							modeSetChannelOperator(targetChannel, splitMessage[i + 1], user);
 						else if (sign == '-')
 							modeRemoveChannelOperator(targetChannel, splitMessage[i + 1], user);
+						i++;
 					}
                     break;
                 case 'l':

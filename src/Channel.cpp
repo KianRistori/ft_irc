@@ -201,7 +201,9 @@ void Channel::removeOperator(User user) {
 User *Channel::findUserInChannel(std::string targetName) {
     for (size_t i = 0; i < this->userList.size(); i++)
     {
-        if (this->userList[i].getNickName() == targetName)
+        if (targetName[targetName.length() - 1] == '\n')
+            targetName.erase(targetName.length() - 1);
+        if (userList[i].getNickName() == targetName)
             return &this->userList[i];
     }
     return NULL;

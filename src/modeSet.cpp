@@ -81,6 +81,8 @@ void modSetTopicRestrictions(Channel *targetChannel, char sign, User user) {
 
 void modeSetChannelKey(Channel *targetChannel, std::string &password,User user) {
     if (targetChannel->isOperator(user)) {
+        if (password[password.length() - 1] == '\n')
+            password.erase(password.length() - 1);
         if (!checkPassword(password)) {
             targetChannel->setPassword(password);
             std::string modeConfirmation = "MODE " + targetChannel->getChannelName() + " +k " + password + "\r\n";
@@ -110,7 +112,6 @@ void modeRemoveChannelKey(Channel *targetChannel, User user) {
 }
 
 void modeSetChannelOperator(Channel *targetChannel, std::string &targetName, User user) {
-    std::cout << "call" << std::endl;
     if (targetChannel->isOperator(user)) {
         User *userTarget = targetChannel->findUserInChannel(targetName);
         if (userTarget == NULL) {
@@ -132,7 +133,6 @@ void modeRemoveChannelOperator(Channel *targetChannel, std::string &targetName, 
     if (targetChannel->isOperator(user)) {
         User *userTarget = targetChannel->findUserInChannel(targetName);
         if (userTarget == NULL) {
-            std::cout << "n" << std::endl;
             const char *noNickMessage = ":482 * :No such nick\r\n";
             send(user.getSocket(), noNickMessage, strlen(noNickMessage), 0);
             return;

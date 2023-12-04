@@ -160,7 +160,6 @@ std::pair<std::string, std::string> parseChannel(std::string const &message)
 	std::vector<std::string> splitMessage;
 	std::string channelName;
 	std::string password = "";
-	std::cout << message <<std::endl;
 	split(message, splitMessage, ' ');
 	if(splitMessage.size() != 2)
 		channelName = splitMessage[splitMessage.size() - 1];
@@ -252,7 +251,6 @@ void	handleJoinCommand(User &user, std::string const &message, std::vector<Chann
 				providedPassword = it->second;
 			else
 				providedPassword = "";
-			// std::cout << "provided password:" << providedPassword << std::endl;
 			if (existingChannel->checkChannelPassword(providedPassword)) {
 				existingChannel->addUser(user);
 			} else {
@@ -347,8 +345,6 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
         for (size_t i = 2; i < splitMessage.size(); ++i) {
             char val = splitMessage[i][1];
 			char sign = splitMessage[i][0];
-			std::cout << "val: " << val << std::endl;
-			std::cout << "sign: " << sign << std::endl;
             switch (val) {
                 case 'i':
                     modSetInviteOnly(targetChannel, sign, user);
@@ -370,7 +366,6 @@ void handleModeCommand(User &user, std::string const &message, std::vector<Chann
 							modeSetChannelOperator(targetChannel, splitMessage[i + 1], user);
 						else if (sign == '-')
 							modeRemoveChannelOperator(targetChannel, splitMessage[i + 1], user);
-						i++;
 					}
                     break;
                 case 'l':

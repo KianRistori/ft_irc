@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
 
     char buffer[1025];
 
+    std::string receivedMessage;
+
     fd_set readfds;
 
     const char *message = "ECHO Daemon v1.0 \r\n";
@@ -180,8 +182,11 @@ int main(int argc, char *argv[])
 
                 else
                 {
-                    buffer[valread] = '\0';
-                    handleIRCMessage(users[i], std::string(buffer), users, channels, server_password);
+                    receivedMessage += std::string(buffer, valread);
+                    if (buffer[valread - 1] == '\n') {
+                        handleIRCMessage(users[i], receivedMessage, users, channels, server_password);
+                        receivedMessage.clear();
+                    }
                 }
             }
         }

@@ -300,6 +300,10 @@ void handlePartCommand(User &user, std::string const &message, std::vector<Chann
         std::string partMessage = ":" + user.getNickName() + "!" + user.getNickName() + " PART :" + channel->getChannelName() + "\r\n";
         channel->broadcastMessage(partMessage);
         channel->removeUser(user);
+		if (channel->isOperator(user)) {
+			channel->removeOperator(user);
+			channel->addOperatorsPart();
+		}
 		channel->updateUserList(user);
     } else {
         std::string partErrorMessage = "403 " + user.getNickName() + " " + channelName + " :No such channel\r\n";

@@ -45,5 +45,6 @@ public:
     void removeOperator(User user);
     User *findUserInChannel(std::string targetName);
     bool isEmpty() const;
+    void addOperatorsPart(); 
     ~Channel();
 };

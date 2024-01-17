@@ -41,6 +41,14 @@ void Channel::addOperators(User user)
     operators.push_back(user);
 }
 
+void Channel::addOperatorsPart() {
+    if (operators.size() == 0) {
+        this->addOperators(userList[0]);
+        std::string modeConfirmation = "MODE " + this->channelName + " +o " + userList[0].getNickName() + "\r\n";
+        this->broadcastMessage(modeConfirmation);
+    }
+}
+
 std::vector<User>   Channel::getUserList() const {
     return this->userList;
 }
